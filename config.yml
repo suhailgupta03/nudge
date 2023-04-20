@@ -1,0 +1,15 @@
+name: Nudge Config
+
+server:
+  port: :5000
+
+github:
+  client_id: Iv1.cbb2b3feab1eb3f0
+  client_secret: 7b223d148241ad054c5934e983015e2fd22a4dc4
+  app_id: 313280
+  oauth_app_client_id: c599f8cf78501f215c5f
+  oauth_app_client_secret: ace20868c34136fc3d0fe8b3926b2f4ae70536c7
+
+mongo:
+  connection: mongodb+srv://nudge_admin:io17zdSYcct0QRrB@nudge-cluster.rusree1.mongodb.net/?retryWrites=true&w=majority
+  database: nudge
