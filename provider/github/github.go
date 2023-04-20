@@ -97,7 +97,7 @@ func (g *GitHub) GetPRs(owner, repoName string, state *string) ([]*github.PullRe
 	prs := make([]*github.PullRequest, 0)
 
 	for _, pr := range prList {
-		if pr.State == state {
+		if *pr.State == *state {
 			prs = append(prs, pr)
 		}
 	}

@@ -9,12 +9,12 @@ import (
 	"nudge/prediction"
 )
 
-var (
-	app *App
-)
-
 func handleWebhook(c echo.Context) error {
-	app = c.Get("app").(*App)
+	var (
+		app = c.Get("app").(*App)
+	)
+	app.log.Println("Received webhook")
+	
 	payload, err := github.ValidatePayload(c.Request(), nil)
 	if err != nil {
 		return err
@@ -25,26 +25,25 @@ func handleWebhook(c echo.Context) error {
 	}
 	switch event := event.(type) {
 	case *github.PullRequestEvent:
-		handlePR(*event)
+		handlePR(*event, app)
+		break
 	default:
 		fmt.Println(event)
 	}
-
-	app.log.Println("Received webhook")
 	return c.JSON(http.StatusOK, okResp{"out"})
 }
 
-func handlePR(pr github.PullRequestEvent) {
+func handlePR(pr github.PullRequestEvent, app *App) {
 	if pr.Action != nil {
 		switch *pr.Action {
 		case "opened":
-			handleNewPRRequest(pr)
+			handleNewPRRequest(pr, app)
 			break
 		case "closed":
-			handlePRCloseRequest(pr)
+			handlePRCloseRequest(pr, app)
 			break
 		case "reopened":
-			handlePRReopenRequest(pr)
+			handlePRReopenRequest(pr, app)
 			break
 		case "edited":
 			break
@@ -52,7 +51,7 @@ func handlePR(pr github.PullRequestEvent) {
 	}
 }
 
-func handleNewPRRequest(pr github.PullRequestEvent) {
+func handleNewPRRequest(pr github.PullRequestEvent, app *App) {
 	prModel := prp.Init(app.db)
 	model := new(prp.PRModel)
 	model.PRID = *pr.PullRequest.ID
@@ -66,9 +65,9 @@ func handleNewPRRequest(pr github.PullRequestEvent) {
 	}
 }
 
-func handlePRCloseRequest(pr github.PullRequestEvent) {
+func handlePRCloseRequest(pr github.PullRequestEvent, app *App) {
 	prModel := prp.Init(app.db)
-	err := prModel.UpdateByPRId(*pr.PullRequest.ID, map[string]string{
+	err := prModel.UpdateByPRId(*pr.PullRequest.ID, map[string]interface{}{
 		"status": prp.PRStatusClosed,
 		//TODO: Better way to know the json name of the field in PRModel struct
 	})
@@ -77,7 +76,7 @@ func handlePRCloseRequest(pr github.PullRequestEvent) {
 	}
 }
 
-func handlePRReopenRequest(pr github.PullRequestEvent) {
+func handlePRReopenRequest(pr github.PullRequestEvent, app *App) {
 	prModel := prp.Init(app.db)
 	model := new(prp.PRModel)
 	model.PRID = *pr.PullRequest.ID
@@ -87,6 +86,6 @@ func handlePRReopenRequest(pr github.PullRequestEvent) {
 	model.LifeTime = prediction.EstimateLifeTime()
 	err := prModel.Upsert(model)
 	if err != nil {
-		app.log.Printf("Error while carrying out the upsert operation for PRReopen event %v", err)
+		app.log.Printf("Error while carrying out the upsert operation for PR-Reopen event %v", err)
 	}
 }
