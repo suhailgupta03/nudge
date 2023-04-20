@@ -1,12 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"github.com/google/go-github/v51/github"
 	"github.com/labstack/echo/v4"
 	"net/http"
 	prp "nudge/internal/database/pr"
-	"nudge/prediction"
 )
 
 func handleWebhook(c echo.Context) error {
@@ -14,7 +12,7 @@ func handleWebhook(c echo.Context) error {
 		app = c.Get("app").(*App)
 	)
 	app.log.Println("Received webhook")
-	
+
 	payload, err := github.ValidatePayload(c.Request(), nil)
 	if err != nil {
 		return err
@@ -27,8 +25,6 @@ func handleWebhook(c echo.Context) error {
 	case *github.PullRequestEvent:
 		handlePR(*event, app)
 		break
-	default:
-		fmt.Println(event)
 	}
 	return c.JSON(http.StatusOK, okResp{"out"})
 }
@@ -53,12 +49,7 @@ func handlePR(pr github.PullRequestEvent, app *App) {
 
 func handleNewPRRequest(pr github.PullRequestEvent, app *App) {
 	prModel := prp.Init(app.db)
-	model := new(prp.PRModel)
-	model.PRID = *pr.PullRequest.ID
-	model.Number = *pr.Number
-	model.RepoId = *pr.Repo.ID
-	model.Status = prp.PRStatusOpen
-	model.LifeTime = prediction.EstimateLifeTime()
+	model := prp.CreateDataModelForPR(*pr.PullRequest, *pr.Repo.ID)
 	err := prModel.Create(model)
 	if err != nil {
 		app.log.Printf("Error while inserting a new PR record %v", err)
@@ -68,7 +59,8 @@ func handleNewPRRequest(pr github.PullRequestEvent, app *App) {
 func handlePRCloseRequest(pr github.PullRequestEvent, app *App) {
 	prModel := prp.Init(app.db)
 	err := prModel.UpdateByPRId(*pr.PullRequest.ID, map[string]interface{}{
-		"status": prp.PRStatusClosed,
+		"status":        prp.PRStatusClosed,
+		"pr_updated_at": pr.PullRequest.UpdatedAt.Unix(),
 		//TODO: Better way to know the json name of the field in PRModel struct
 	})
 	if err != nil {
@@ -78,12 +70,7 @@ func handlePRCloseRequest(pr github.PullRequestEvent, app *App) {
 
 func handlePRReopenRequest(pr github.PullRequestEvent, app *App) {
 	prModel := prp.Init(app.db)
-	model := new(prp.PRModel)
-	model.PRID = *pr.PullRequest.ID
-	model.Number = *pr.Number
-	model.RepoId = *pr.Repo.ID
-	model.Status = prp.PRStatusOpen
-	model.LifeTime = prediction.EstimateLifeTime()
+	model := prp.CreateDataModelForPR(*pr.PullRequest, *pr.Repo.ID)
 	err := prModel.Upsert(model)
 	if err != nil {
 		app.log.Printf("Error while carrying out the upsert operation for PR-Reopen event %v", err)

@@ -8,7 +8,6 @@ import (
 	prp "nudge/internal/database/pr"
 	"nudge/internal/database/repository"
 	uc "nudge/internal/database/user"
-	"nudge/prediction"
 	provider "nudge/provider/github"
 	"strconv"
 )
@@ -114,12 +113,7 @@ func populateActivePRs(app *App, appAccessToken string, repos *github.ListReposi
 		}
 		prModelList := make([]*prp.PRModel, 0)
 		for _, pr := range prs {
-			model := new(prp.PRModel)
-			model.PRID = *pr.ID
-			model.Number = *pr.Number
-			model.RepoId = *repo.ID
-			model.Status = prp.PRStatusOpen
-			model.LifeTime = prediction.EstimateLifeTime()
+			model := prp.CreateDataModelForPR(*pr, *repo.ID)
 			prModelList = append(prModelList, model)
 		}
 		bErr := prModel.BulkCreate(prModelList)

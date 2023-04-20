@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/google/go-github/v51/github"
 	"go.mongodb.org/mongo-driver/mongo"
 	"nudge/internal/database"
+	"nudge/prediction"
 	"reflect"
 	"time"
 )
@@ -16,13 +18,15 @@ const (
 )
 
 type PRModel struct {
-	Number    int    `json:"number"`
-	PRID      int64  `json:"prid"`
-	RepoId    int64  `json:"repo_id"`
-	Status    string `json:"status"`
-	LifeTime  int    `json:"life_time"`
-	CreatedAt int64  `bson:"created_at" json:"created_at"`
-	UpdatedAt int64  `bson:"updated_at" json:"updated_at"`
+	Number      int    `json:"number" bson:"number"`
+	PRID        int64  `json:"prid" bson:"prid"`
+	RepoId      int64  `json:"repo_id" bson:"repo_id"`
+	Status      string `json:"status" bson:"status"`
+	LifeTime    int    `json:"life_time" bson:"life_time"`
+	PRCreatedAt int64  `json:"pr_created_at" bson:"pr_created_at"`
+	PRUpdatedAt int64  `json:"pr_updated_at" bson:"pr_updated_at"`
+	CreatedAt   int64  `bson:"created_at" json:"created_at" bson:"created_at"`
+	UpdatedAt   int64  `bson:"updated_at" json:"updated_at" bson:"updated_at"`
 }
 
 type PR struct {
@@ -121,4 +125,16 @@ func (pr *PR) Upsert(prm *PRModel) error {
 	// If the document exists, update the document
 	return pr.UpdateByPRId(prm.PRID, prm)
 
+}
+
+func CreateDataModelForPR(pr github.PullRequest, repoId int64) *PRModel {
+	model := new(PRModel)
+	model.PRID = *pr.ID
+	model.Number = *pr.Number
+	model.RepoId = repoId
+	model.Status = PRStatusOpen
+	model.PRCreatedAt = pr.CreatedAt.Unix()
+	model.PRUpdatedAt = pr.UpdatedAt.Unix()
+	model.LifeTime = prediction.EstimateLifeTime()
+	return model
 }

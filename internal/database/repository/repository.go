@@ -38,9 +38,5 @@ func (repo *Repository) Create(r []RepoModel) error {
 	}
 
 	_, err := repo.Collection.InsertMany(ctx, records)
-	if err != nil {
-		return database.ParseDatabaseError(err)
-	}
-
-	return nil
+	return err
 }
