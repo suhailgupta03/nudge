@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/google/go-github/v51/github"
+	"github.com/google/go-github/v52/github"
 	"github.com/labstack/echo/v4"
 	"net/http"
 	prp "nudge/internal/database/pr"
@@ -25,6 +25,17 @@ func handleWebhook(c echo.Context) error {
 	case *github.PullRequestEvent:
 		handlePR(*event, app)
 		break
+	case *github.PullRequestReviewThreadEvent:
+		updateWorkflow(*event, app)
+		resolveReview(*event, app)
+		break
+	case *github.PullRequestReviewEvent:
+		// https://docs.github.com/en/graphql/reference/enums#pullrequestreviewevent
+		updateWorkflow(*event, app)
+		addReview(*event, app)
+		break
+	case *github.PullRequestReviewCommentEvent:
+		break
 	}
 	return c.JSON(http.StatusOK, okResp{"out"})
 }
@@ -37,14 +48,71 @@ func handlePR(pr github.PullRequestEvent, app *App) {
 			break
 		case "closed":
 			handlePRCloseRequest(pr, app)
+			updateWorkflow(pr, app)
 			break
 		case "reopened":
 			handlePRReopenRequest(pr, app)
+			updateWorkflow(pr, app)
+			break
+		case "synchronize":
+			updateWorkflow(pr, app)
+			break
+		case "review_requested":
+			updateWorkflow(pr, app)
+			updateReviewers(pr, app)
+			break
+		case "review_request_removed":
+			updateReviewers(pr, app)
 			break
 		case "edited":
 			break
 		}
 	}
+}
+
+func updateWorkflow(pr interface{}, app *App) {
+	var (
+		workflowLastActivity               int64
+		workflowLastActionRecorded         string
+		workflowLastActionCategoryRecorded string
+		prId                               int64
+	)
+
+	switch pr.(type) {
+	case github.PullRequestReviewThreadEvent:
+		_pr := pr.(github.PullRequestReviewThreadEvent)
+		workflowLastActivity = _pr.PullRequest.UpdatedAt.Unix()
+		workflowLastActionRecorded = *_pr.Action
+		workflowLastActionCategoryRecorded = prp.WorkflowActionTypeComment
+		prId = *_pr.PullRequest.ID
+		break
+	case github.PullRequestEvent:
+		_pr := pr.(github.PullRequestEvent)
+		workflowLastActivity = _pr.PullRequest.UpdatedAt.Unix()
+		workflowLastActionRecorded = *_pr.Action
+		workflowLastActionCategoryRecorded = prp.WorkflowActionTypePull
+		prId = *_pr.PullRequest.ID
+		break
+	case github.PullRequestReviewEvent:
+		_pr := pr.(github.PullRequestReviewEvent)
+		workflowLastActivity = _pr.PullRequest.UpdatedAt.Unix()
+		workflowLastActionRecorded = *_pr.Action
+		workflowLastActionCategoryRecorded = *_pr.Review.State
+		prId = *_pr.PullRequest.ID
+	}
+
+	prModel := prp.Init(app.db)
+	err := prModel.UpdateByPRId(prId, map[string]interface{}{
+		"workflow_last_activity":                 workflowLastActivity,
+		"last_workflow_action_recorded":          workflowLastActionRecorded,
+		"last_workflow_action_category_recorded": workflowLastActionCategoryRecorded,
+		//TODO: Better way to know the json name of the field in PRModel struct
+	})
+
+	if err != nil {
+		app.log.Printf("Error while updating the workflow on PullRequestReviewThreadEvent %v", err)
+	}
+
 }
 
 func handleNewPRRequest(pr github.PullRequestEvent, app *App) {
@@ -59,7 +127,7 @@ func handleNewPRRequest(pr github.PullRequestEvent, app *App) {
 func handlePRCloseRequest(pr github.PullRequestEvent, app *App) {
 	prModel := prp.Init(app.db)
 	err := prModel.UpdateByPRId(*pr.PullRequest.ID, map[string]interface{}{
-		"status":        prp.PRStatusClosed,
+		"status":        *pr.PullRequest.State,
 		"pr_updated_at": pr.PullRequest.UpdatedAt.Unix(),
 		//TODO: Better way to know the json name of the field in PRModel struct
 	})
@@ -74,5 +142,48 @@ func handlePRReopenRequest(pr github.PullRequestEvent, app *App) {
 	err := prModel.Upsert(model)
 	if err != nil {
 		app.log.Printf("Error while carrying out the upsert operation for PR-Reopen event %v", err)
+	}
+}
+
+func updateReviewers(pr github.PullRequestEvent, app *App) {
+	if pr.RequestedReviewer != nil {
+		prModel := prp.Init(app.db)
+		reviewer := *pr.RequestedReviewer.Login
+		removeReviewer := false
+		if *pr.Action == "review_request_removed" {
+			removeReviewer = true
+		}
+		err := prModel.UpdateReviewer(*pr.PullRequest.ID, reviewer, removeReviewer)
+		if err != nil {
+			lo.Printf("Failed to update reviewers for PR %d of repo %s - %v", *pr.Number, *pr.Repo.Name, err)
+		}
+	}
+}
+
+func addReview(pr github.PullRequestReviewEvent, app *App) {
+	prModel := prp.Init(app.db)
+	submittedAt := pr.Review.SubmittedAt.Unix()
+	review := prp.Review{
+		ReviewId:    *pr.Review.ID,
+		ReviewState: pr.Review.State,
+		Reviewer:    pr.Review.User.Login,
+		SubmittedAt: &submittedAt,
+	}
+	err := prModel.UpdateReview(*pr.PullRequest.ID, review, false)
+	if err != nil {
+		lo.Printf("Failed to update review for PR %d of repo %s - %v", *pr.PullRequest.Number, *pr.Repo.Name, err)
+	}
+}
+
+func resolveReview(pr github.PullRequestReviewThreadEvent, app *App) {
+	if *pr.Action == "resolved" {
+		prModel := prp.Init(app.db)
+		if pr.Thread != nil {
+			review := prp.Review{ReviewId: *pr.Thread.Comments[0].PullRequestReviewID}
+			err := prModel.UpdateReview(*pr.PullRequest.ID, review, true)
+			if err != nil {
+				lo.Printf("Failed to remove review for PR %d of repo %s - %v", *pr.PullRequest.Number, *pr.Repo.Name, err)
+			}
+		}
 	}
 }

@@ -1,14 +1,14 @@
 package main
 
 import (
-	"github.com/google/go-github/v51/github"
+	"github.com/google/go-github/v52/github"
 	"github.com/labstack/echo/v4"
 	"net/http"
 	dbp "nudge/internal/database"
 	prp "nudge/internal/database/pr"
 	"nudge/internal/database/repository"
 	uc "nudge/internal/database/user"
-	provider "nudge/provider/github"
+	"nudge/internal/provider/github"
 	"strconv"
 )
 

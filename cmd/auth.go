@@ -5,7 +5,7 @@ import (
 	"net/http"
 	dbp "nudge/internal/database"
 	uc "nudge/internal/database/user"
-	provider "nudge/provider/github"
+	"nudge/internal/provider/github"
 )
 
 func handleGitHubOauth(c echo.Context) error {

@@ -61,6 +61,21 @@ func main() {
 
 	srv := initHTTPServer(app)
 
+	ticker := time.NewTicker(time.Second)
+	quit := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				Workflow()
+				break
+			case <-quit:
+				ticker.Stop()
+				break
+			}
+		}
+	}()
+
 	// Wait for the reload signal with a callback to gracefully shut down resources.
 	// The `wait` channel is passed to awaitReload to wait for the callback to finish
 	// within N seconds, or do a force reload.

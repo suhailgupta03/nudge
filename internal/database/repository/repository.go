@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"nudge/internal/database"
 	"time"
@@ -39,4 +40,20 @@ func (repo *Repository) Create(r []RepoModel) error {
 
 	_, err := repo.Collection.InsertMany(ctx, records)
 	return err
+}
+
+func (repo *Repository) GetAll() (*[]RepoModel, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	cursor, err := repo.Collection.Find(ctx, bson.D{}, nil)
+	if err != nil {
+		return nil, err
+	}
+	var results []RepoModel
+	if err = cursor.All(context.TODO(), &results); err != nil {
+		return nil, err
+	}
+
+	return &results, nil
+
 }

@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/go-github/v51/github"
+	"github.com/google/go-github/v52/github"
 	"golang.org/x/oauth2"
 	"io"
 	"net/http"
@@ -84,6 +84,14 @@ func (g *GitHub) GetReposToMonitor() (*github.ListRepositories, error) {
 	return repos, err
 }
 
+func (g *GitHub) GetPrById(prNumber int, owner, repo string) (*github.PullRequest, error) {
+	pr, _, err := g.client.PullRequests.Get(g.ctx, owner, repo, prNumber)
+	if err != nil {
+		return nil, err
+	}
+
+	return pr, nil
+}
 func (g *GitHub) GetPRs(owner, repoName string, state *string) ([]*github.PullRequest, error) {
 	prList, _, err := g.client.PullRequests.List(g.ctx, owner, repoName, nil)
 	if err != nil {
@@ -104,6 +112,24 @@ func (g *GitHub) GetPRs(owner, repoName string, state *string) ([]*github.PullRe
 
 	return prs, err
 }
+
+func (g *GitHub) GetReviewCommentsOnPR(prNumber int, repoName, repoOwner string) ([]*github.PullRequestComment, error) {
+	comments, _, err := g.client.PullRequests.ListComments(g.ctx, repoOwner, repoName, prNumber, &github.PullRequestListCommentsOptions{
+		Sort:      "created",
+		Direction: "desc",
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return comments, nil
+}
+
+func (g *GitHub) GetBranchProtection(repo, branch, owner string) (*github.Protection, error) {
+	protection, _, err := g.client.Repositories.GetBranchProtection(g.ctx, owner, repo, branch)
+	return protection, err
+}
+
 func fetchAccessToken(clientId, clientSecret, code string) ([]byte, error) {
 	postBody, _ := json.Marshal(map[string]string{
 		"client_id":     clientId,
