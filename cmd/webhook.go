@@ -5,6 +5,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"net/http"
 	prp "nudge/internal/database/pr"
+	"nudge/internal/database/repository"
+	uc "nudge/internal/database/user"
 )
 
 func handleWebhook(c echo.Context) error {
@@ -35,6 +37,9 @@ func handleWebhook(c echo.Context) error {
 		addReview(*event, app)
 		break
 	case *github.PullRequestReviewCommentEvent:
+		break
+	case *github.InstallationEvent:
+		uninstallApp(*event, app)
 		break
 	}
 	return c.JSON(http.StatusOK, okResp{"out"})
@@ -183,6 +188,28 @@ func resolveReview(pr github.PullRequestReviewThreadEvent, app *App) {
 			err := prModel.UpdateReview(*pr.PullRequest.ID, review, true)
 			if err != nil {
 				lo.Printf("Failed to remove review for PR %d of repo %s - %v", *pr.PullRequest.Number, *pr.Repo.Name, err)
+			}
+		}
+	}
+}
+
+func uninstallApp(installation github.InstallationEvent, app *App) {
+	if *installation.Action == "deleted" {
+		uDelErr := uc.Init(app.db).Delete(*installation.Installation.ID)
+		if uDelErr != nil {
+			lo.Printf("Failed to delete user %v", uDelErr)
+			return
+		}
+		repoDelErr := repository.Init(app.db).DeleteAll(*installation.Installation.ID)
+		if repoDelErr != nil {
+			lo.Printf("Failed to delete repository %v", repoDelErr)
+			return
+		}
+
+		for _, repo := range installation.Repositories {
+			prDelErr := prp.Init(app.db).DeleteAll(*repo.ID)
+			if prDelErr != nil {
+				lo.Printf("Failed to delete repository %s %v", *repo.Name, prDelErr)
 			}
 		}
 	}

@@ -55,5 +55,14 @@ func (repo *Repository) GetAll() (*[]RepoModel, error) {
 	}
 
 	return &results, nil
+}
 
+func (repo *Repository) DeleteAll(installationId int64) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	where := map[string]int64{
+		"installation_id": installationId,
+	}
+	_, err := repo.Collection.DeleteMany(ctx, where)
+	return err
 }

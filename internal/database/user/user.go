@@ -55,3 +55,14 @@ func (u *User) Create(user *UserModel) error {
 
 	return nil
 }
+
+func (u *User) Delete(installationId int64) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	where := map[string]int64{
+		"git_hub_app.installation_id": installationId,
+	}
+	_, err := u.Collection.DeleteOne(ctx, where)
+	return err
+}

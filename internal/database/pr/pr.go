@@ -214,6 +214,16 @@ func (pr *PR) Upsert(prm *PRModel) error {
 
 }
 
+func (pr *PR) DeleteAll(repoId int64) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	where := map[string]int64{
+		"repo_id": repoId,
+	}
+	_, err := pr.Collection.DeleteMany(ctx, where)
+	return err
+}
+
 func CreateDataModelForPR(pr github.PullRequest, repoId int64) *PRModel {
 	model := new(PRModel)
 	model.PRID = *pr.ID
