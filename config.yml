@@ -3,6 +3,14 @@ name: Nudge Config
 server:
   port: :5000
 
+bot:
+  interval_to_wait:
+    unit: h
+    time: 1
+  next_check_in:
+    unit: h
+    time: 1
+
 github:
   client_id: Iv1.cbb2b3feab1eb3f0
   client_secret: 7b223d148241ad054c5934e983015e2fd22a4dc4

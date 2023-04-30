@@ -130,6 +130,13 @@ func (g *GitHub) GetBranchProtection(repo, branch, owner string) (*github.Protec
 	return protection, err
 }
 
+func (g *GitHub) PostComment(repo, owner string, prNumber int, body string) error {
+	_, _, err := g.client.Issues.CreateComment(g.ctx, owner, repo, prNumber, &github.IssueComment{
+		Body: &body,
+	})
+	return err
+}
+
 func fetchAccessToken(clientId, clientSecret, code string) ([]byte, error) {
 	postBody, _ := json.Marshal(map[string]string{
 		"client_id":     clientId,

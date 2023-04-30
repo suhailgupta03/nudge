@@ -11,7 +11,12 @@ import (
 
 type GithubUserName string
 
-func IdentifyActors(delayedPR prp.PRModel, repo repository.RepoModel, ko *koanf.Koanf) (*[]GithubUserName, error) {
+type ActorDetails struct {
+	IsReviewer     bool
+	GithubUserName GithubUserName
+}
+
+func IdentifyActors(delayedPR prp.PRModel, repo repository.RepoModel, ko *koanf.Koanf) ([]ActorDetails, error) {
 	// Fetch the latest PR details from GitHub
 
 	// Extract the reviewers in from the PR
@@ -47,31 +52,35 @@ func IdentifyActors(delayedPR prp.PRModel, repo repository.RepoModel, ko *koanf.
 
 	prReviewed := isPrReviewed(minReviewsRequired, prDetails)
 	if !prReviewed {
-		actors := make([]GithubUserName, 0)
+		actors := make([]ActorDetails, 0)
 		for _, r := range prDetails.RequestedReviewers {
-			login := interface{}(*r.Login)
-			actors = append(actors, login.(GithubUserName))
+			login := GithubUserName(*r.Login)
+			actors = append(actors, ActorDetails{
+				IsReviewer:     true,
+				GithubUserName: login,
+			})
 		}
 		// Return the list of reviewers because of which the PR is blocked
-		return &actors, nil
+		return actors, nil
 	}
 
 	prApproved, userReviewMap := isPrApproved(delayedPR.Reviews, minReviewsRequired)
 
 	if prReviewed && prApproved {
-		login := GithubUserName(*prDetails.User.Login)
 		// return the author who now just needs to merge
-		return &[]GithubUserName{login}, nil
+		return []ActorDetails{{
+			IsReviewer:     false,
+			GithubUserName: GithubUserName(*prDetails.User.Login),
+		}}, nil
 	}
 
 	pendingAuthorActItems := hasPendingActionItemsForAuthor(delayedPR.Reviews)
 	if pendingAuthorActItems {
-		login := interface{}(*prDetails.User.Login)
 		// return author who might need to discuss with reviewer
-		return &[]GithubUserName{login.(GithubUserName)}, nil
+		return []ActorDetails{{IsReviewer: false, GithubUserName: GithubUserName(*prDetails.User.Login)}}, nil
 	} else {
 		// return the reviewers
-		actors := make([]GithubUserName, 0)
+		actors := make([]ActorDetails, 0)
 		for username, v := range userReviewMap {
 			foundApproval := false
 			for _, review := range v {
@@ -81,10 +90,13 @@ func IdentifyActors(delayedPR prp.PRModel, repo repository.RepoModel, ko *koanf.
 				}
 			}
 			if !foundApproval {
-				actors = append(actors, username)
+				actors = append(actors, ActorDetails{
+					IsReviewer:     true,
+					GithubUserName: username,
+				})
 			}
 		}
-		return &actors, nil
+		return actors, nil
 	}
 
 }

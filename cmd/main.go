@@ -61,7 +61,11 @@ func main() {
 
 	srv := initHTTPServer(app)
 
-	ticker := time.NewTicker(time.Second)
+	ticker := time.NewTicker(time.Hour * ko.Duration("bot.next_check_in.time"))
+	if ko.String("bot.next_check_in.unit") == "m" {
+		ticker = time.NewTicker(time.Minute * ko.Duration("bot.next_check_in.time"))
+	}
+
 	quit := make(chan struct{})
 	go func() {
 		for {
