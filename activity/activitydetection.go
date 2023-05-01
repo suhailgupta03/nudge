@@ -110,7 +110,11 @@ func (activity *Activity) checkForActivity(prModel prp.PRModel) *ActivityDetecti
 	are a very strong indicator that the author is making progress on the pull request.
 	*/
 	now := time.Now()
-	workflowLastUpdated := time.Unix(*prModel.WorkflowLastActivity, 0)
+	workflowLastUpdated := time.Now().AddDate(-100, 0, 0)
+	// the default is set 100 years back
+	if prModel.WorkflowLastActivity != nil {
+		workflowLastUpdated = time.Unix(*prModel.WorkflowLastActivity, 0)
+	}
 	timeSinceLastActivity := now.Sub(workflowLastUpdated).Hours()
 	if activity.ko.String("bot.interval_to_wait.unit") == "m" {
 		timeSinceLastActivity = now.Sub(workflowLastUpdated).Minutes()
