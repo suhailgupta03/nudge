@@ -1,0 +1,23 @@
+
+x-app-defaults: &app-defaults
+  restart: unless-stopped
+  image: suhailbw/nudge:latest
+  ports:
+    - "9000:9000"
+  networks:
+    - nudge
+  environment:
+    - TZ=Etc/UTC
+
+services:
+  app:
+    <<: *app-defaults
+    container_name: nudge_app
+    volumes:
+      - ./config.yml:/nudge/config.yml
+
+networks:
+  nudge:
+
+volumes:
+  nudge-data:

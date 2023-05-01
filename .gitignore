@@ -1,2 +1,5 @@
 generate_app_token.go
 *.pem
+dist/
+.idea
+.DS_Store

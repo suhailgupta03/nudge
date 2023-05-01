@@ -1,0 +1,8 @@
+**/.gitignore
+**/.git
+**/.dockerignore
+**/.DS_Store
+**/.idea
+LICENSE
+README.md
+generate_app_token.go
