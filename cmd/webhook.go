@@ -41,6 +41,9 @@ func handleWebhook(c echo.Context) error {
 	case *github.InstallationEvent:
 		uninstallApp(*event, app)
 		break
+	case *github.InstallationRepositoriesEvent:
+		handleInstallRepositoryEvent(*event, app)
+		break
 	}
 	return c.JSON(http.StatusOK, okResp{"out"})
 }
@@ -210,6 +213,37 @@ func uninstallApp(installation github.InstallationEvent, app *App) {
 			prDelErr := prp.Init(app.db).DeleteAll(*repo.ID)
 			if prDelErr != nil {
 				lo.Printf("Failed to delete repository %s %v", *repo.Name, prDelErr)
+			}
+		}
+	}
+}
+
+func handleInstallRepositoryEvent(installation github.InstallationRepositoriesEvent, app *App) {
+	r := repository.Init(app.db)
+	if *installation.Action == "added" {
+		rModel := make([]repository.RepoModel, len(installation.RepositoriesAdded))
+		for i, repo := range installation.RepositoriesAdded {
+			rModel[i] = repository.RepoModel{
+				InstallationId: *installation.Installation.ID,
+				RepoId:         *repo.ID,
+				Name:           *repo.Name,
+				Owner:          *installation.Installation.Account.Login,
+			}
+		}
+		err := r.Create(rModel)
+		if err != nil {
+			lo.Printf("Error while populating repos during the install repo event %v", err)
+		}
+	} else if *installation.Action == "removed" {
+		rErr := r.DeleteAll(*installation.Installation.ID)
+		if rErr != nil {
+			lo.Printf("Error removing repository during the remove repository event %v", rErr)
+		}
+		pr := prp.Init(app.db)
+		for _, repo := range installation.RepositoriesRemoved {
+			err := pr.DeleteAll(*repo.ID)
+			if err != nil {
+				lo.Printf("Error removing PRs during the remove repository event %v", err)
 			}
 		}
 	}

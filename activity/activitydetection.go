@@ -145,12 +145,17 @@ func (activity *Activity) findDelayedPRs(repo repository.RepoModel) chan []prp.P
 		}
 
 		for _, openPR := range *openPRs {
-			activityCheck := activity.checkForActivity(openPR)
-			if activityCheck.Detected {
-				// Terminating the workflow since there is an activity observed in the last 24 hours
-				continue
-			} else {
-				prList = append(prList, openPR)
+			elapsedHoursSincePRCreation := (time.Now().Unix() - openPR.PRCreatedAt) / 3600
+			if elapsedHoursSincePRCreation > int64(openPR.LifeTime) {
+				// Only if the hours elapsed have crossed the predicted, we'll
+				// consider the PR for any activity
+				activityCheck := activity.checkForActivity(openPR)
+				if activityCheck.Detected {
+					// Terminating the workflow since there is an activity observed in the last 24 hours
+					continue
+				} else {
+					prList = append(prList, openPR)
+				}
 			}
 		}
 		delayedPRs <- prList
