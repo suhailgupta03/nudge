@@ -1,10 +1,11 @@
 package notify
 
 import (
-	"github.com/knadh/koanf/v2"
 	"log"
 	"nudge/internal/database/repository"
 	provider "nudge/internal/provider/github"
+
+	"github.com/knadh/koanf/v2"
 )
 
 type Notification struct {

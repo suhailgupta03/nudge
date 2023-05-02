@@ -81,8 +81,8 @@ func populateReposToMonitor(app *App, appAccessToken string, installationId int6
 		app.log.Printf("Failed to read repos to monitor %v", mErr)
 	} else {
 		r := repository.Init(app.db)
-		rModel := make([]repository.RepoModel, repos.GetTotalCount())
-		for i, item := range repos.Repositories {
+		rModel := make([]repository.RepoModel, len(repos))
+		for i, item := range repos {
 			rModel[i] = repository.RepoModel{
 				InstallationId: installationId,
 				RepoId:         *item.ID,
@@ -101,11 +101,11 @@ func populateReposToMonitor(app *App, appAccessToken string, installationId int6
 	}
 }
 
-func populateActivePRs(app *App, appAccessToken string, repos *github.ListRepositories) {
+func populateActivePRs(app *App, appAccessToken string, repos []*github.Repository) {
 	g := provider.Init(appAccessToken)
 	prStateToFetch := "open"
 	prModel := prp.Init(app.db)
-	for _, repo := range repos.Repositories {
+	for _, repo := range repos {
 		prs, prErr := g.GetPRs(*repo.Owner.Login, *repo.Name, &prStateToFetch)
 		if prErr != nil {
 			app.log.Printf("Failed to fetch PR details for repo %s %v", *repo.Name, prErr)

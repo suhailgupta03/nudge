@@ -76,12 +76,39 @@ func (g *GitHub) GetAppInstallationAccessToken(installationId int64) (*github.In
 }
 
 // GetReposToMonitor https://docs.github.com/en/rest/apps/installations?apiVersion=2022-11-28#list-repositories-accessible-to-the-app-installation
-func (g *GitHub) GetReposToMonitor() (*github.ListRepositories, error) {
-	repos, _, err := g.client.Apps.ListRepos(g.ctx, &github.ListOptions{
-		PerPage: 100,
-	}) // TODO: Scan all repos. Limiting to 100 for now
+func (g *GitHub) GetReposToMonitor() ([]*github.Repository, error) {
 
-	return repos, err
+	repos, repoResponse, err := g.client.Apps.ListRepos(g.ctx, nil)
+
+	reposList := make([]*github.Repository, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	reposList = repos.Repositories
+	if repoResponse.NextPage > 0 {
+		next := repoResponse.NextPage
+		for {
+			r, rr, rerr := g.client.Apps.ListRepos(g.ctx, &github.ListOptions{
+				Page: next,
+			})
+
+			for _, repo := range r.Repositories {
+				reposList = append(reposList, repo)
+			}
+
+			if rerr != nil || rr.NextPage == 0 || len(r.Repositories) == 0 {
+				if rerr != nil {
+					err = rerr
+				}
+				break
+			}
+
+			next = rr.NextPage
+		}
+	}
+
+	return reposList, err
 }
 
 func (g *GitHub) GetPrById(prNumber int, owner, repo string) (*github.PullRequest, error) {
@@ -92,10 +119,29 @@ func (g *GitHub) GetPrById(prNumber int, owner, repo string) (*github.PullReques
 
 	return pr, nil
 }
+
 func (g *GitHub) GetPRs(owner, repoName string, state *string) ([]*github.PullRequest, error) {
-	prList, _, err := g.client.PullRequests.List(g.ctx, owner, repoName, nil)
+	prList, prr, err := g.client.PullRequests.List(g.ctx, owner, repoName, nil)
 	if err != nil {
 		return nil, err
+	}
+
+	for i := prr.NextPage; i > 0; {
+		prl, r, perr := g.client.PullRequests.List(g.ctx, owner, repoName, &github.PullRequestListOptions{
+			ListOptions: github.ListOptions{
+				Page: i,
+			},
+		})
+		if perr != nil || len(prl) == 0 {
+			if perr != nil {
+				return nil, perr
+			}
+			break
+		}
+		for _, _r := range prl {
+			prList = append(prList, _r)
+		}
+		i = r.NextPage
 	}
 
 	if state == nil {
@@ -111,18 +157,6 @@ func (g *GitHub) GetPRs(owner, repoName string, state *string) ([]*github.PullRe
 	}
 
 	return prs, err
-}
-
-func (g *GitHub) GetReviewCommentsOnPR(prNumber int, repoName, repoOwner string) ([]*github.PullRequestComment, error) {
-	comments, _, err := g.client.PullRequests.ListComments(g.ctx, repoOwner, repoName, prNumber, &github.PullRequestListCommentsOptions{
-		Sort:      "created",
-		Direction: "desc",
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return comments, nil
 }
 
 func (g *GitHub) GetBranchProtection(repo, branch, owner string) (*github.Protection, error) {

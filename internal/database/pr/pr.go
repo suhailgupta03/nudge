@@ -89,6 +89,10 @@ func (pr *PR) Create(prm *PRModel) error {
 }
 
 func (pr *PR) BulkCreate(prms []*PRModel) error {
+	if len(prms) == 0 {
+		return nil
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
