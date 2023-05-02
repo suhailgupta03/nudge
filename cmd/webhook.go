@@ -7,6 +7,7 @@ import (
 	prp "nudge/internal/database/pr"
 	"nudge/internal/database/repository"
 	uc "nudge/internal/database/user"
+	provider "nudge/internal/provider/github"
 )
 
 func handleWebhook(c echo.Context) error {
@@ -23,28 +24,32 @@ func handleWebhook(c echo.Context) error {
 	if err != nil {
 		return err
 	}
-	switch event := event.(type) {
-	case *github.PullRequestEvent:
-		handlePR(*event, app)
-		break
-	case *github.PullRequestReviewThreadEvent:
-		updateWorkflow(*event, app)
-		resolveReview(*event, app)
-		break
-	case *github.PullRequestReviewEvent:
-		// https://docs.github.com/en/graphql/reference/enums#pullrequestreviewevent
-		updateWorkflow(*event, app)
-		addReview(*event, app)
-		break
-	case *github.PullRequestReviewCommentEvent:
-		break
-	case *github.InstallationEvent:
-		uninstallApp(*event, app)
-		break
-	case *github.InstallationRepositoriesEvent:
-		handleInstallRepositoryEvent(*event, app)
-		break
-	}
+
+	go func() {
+		switch event := event.(type) {
+		case *github.PullRequestEvent:
+			handlePR(*event, app)
+			break
+		case *github.PullRequestReviewThreadEvent:
+			updateWorkflow(*event, app)
+			resolveReview(*event, app)
+			break
+		case *github.PullRequestReviewEvent:
+			// https://docs.github.com/en/graphql/reference/enums#pullrequestreviewevent
+			updateWorkflow(*event, app)
+			addReview(*event, app)
+			break
+		case *github.PullRequestReviewCommentEvent:
+			break
+		case *github.InstallationEvent:
+			uninstallApp(*event, app)
+			break
+		case *github.InstallationRepositoriesEvent:
+			handleInstallRepositoryEvent(*event, app)
+			break
+		}
+	}() // Process the webhook in a separate coroutine
+
 	return c.JSON(http.StatusOK, okResp{"out"})
 }
 
@@ -234,8 +239,18 @@ func handleInstallRepositoryEvent(installation github.InstallationRepositoriesEv
 		if err != nil {
 			lo.Printf("Error while populating repos during the install repo event %v", err)
 		}
+		jwt, _ := provider.GenerateAppJWT(app.ko.String("app.private_key"), app.ko.String("github.app_id"))
+		g := provider.Init(*jwt)
+		iToken, appTokenErr := g.GetAppInstallationAccessToken(*installation.Installation.ID)
+		if appTokenErr != nil {
+			lo.Printf("Failed to fetch app access token while trying to add PRs %v", appTokenErr)
+			return
+		}
+
+		// Populate all the PRs for the repositories added
+		populateActivePRs(app, iToken.GetToken(), installation.RepositoriesAdded)
 	} else if *installation.Action == "removed" {
-		rErr := r.DeleteAll(*installation.Installation.ID)
+		rErr := r.DeleteOne(*installation.Installation.ID)
 		if rErr != nil {
 			lo.Printf("Error removing repository during the remove repository event %v", rErr)
 		}

@@ -118,7 +118,7 @@ func populateActivePRs(app *App, appAccessToken string, repos []*github.Reposito
 		}
 		bErr := prModel.BulkCreate(prModelList)
 		if bErr != nil {
-			app.log.Printf("Failed to insert open PR records for %s %v", repo.Name, bErr)
+			app.log.Printf("Failed to insert open PR records for %s - %v", *repo.Name, bErr)
 			continue
 		}
 	}

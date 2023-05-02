@@ -47,7 +47,7 @@ var indexDetails = map[string][]mongo.IndexModel{
 	},
 	PRCollection: {
 		{Keys: bson.D{{"repo_id", 1}}},
-		{Keys: bson.D{{"number", 1}}, Options: options.Index().SetUnique(true)},
+		{Keys: bson.D{{"number", 1}}},
 		{Keys: bson.D{{"prid", 1}}, Options: options.Index().SetUnique(true)},
 	},
 }
