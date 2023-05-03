@@ -31,12 +31,20 @@ func Workflow() {
 			actor := actorDetails[0].GithubUserName
 			isReviewer := actorDetails[0].IsReviewer
 			lo.Printf("Review is stuck because of %s", actor)
-			n := notify.Init(ko, lo)
+			n := notify.GithubNotificationInit(ko, lo)
 			// 4. Notify the actors blocking the PR
-			postErr := n.Post(pr.Repository, pr.DelayedPR.Number, string(actor), isReviewer)
+
+			postErr := n.Post(pr.Repository, pr.DelayedPR, string(actor), isReviewer)
 			if postErr != nil {
 				lo.Printf("Failed to post a message to the actor blocking the PR %v", postErr)
 			}
+
+			s := notify.SlackNotificationInit(ko, lo, database)
+			slackErr := s.Post(pr.Repository, pr.DelayedPR, string(actor), isReviewer)
+			if slackErr != nil {
+				lo.Printf("Failed to post a message to slack %v", slackErr)
+			}
+
 		}
 	}
 

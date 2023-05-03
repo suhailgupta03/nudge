@@ -29,4 +29,8 @@ func initHTTPHandlers(e *echo.Echo, app *App) {
 	g.GET("/github/app/callback", handleGitHubAppCallback)
 	g.POST("/github/app/webhook", handleWebhook)
 	g.GET("/github/oauth/callback", handleGitHubOauth)
+
+	// Public Endpoints for Slack Callbacks
+	g.GET("/slack/auth", handleSlackAuthRequest)
+	g.POST("/slack/github", storeGitHubSlackMapping)
 }

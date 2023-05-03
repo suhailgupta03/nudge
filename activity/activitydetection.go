@@ -49,7 +49,7 @@ func (activity *Activity) ActivityCheckTrigger() (*[]DelayedPRDetails, error) {
 	for _, repo := range *repoList {
 		delayedPRChanList = append(delayedPRChanList, delayedPRChanDetails{
 			Repository:    repo,
-			DelayedPRList: activity.findDelayedPRs(repo),
+			DelayedPRList: activity.findDelayedPRs(repo), // Loads PR using simultaneous coroutines
 		})
 	}
 

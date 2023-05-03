@@ -2,6 +2,7 @@ name: Nudge Config
 
 server:
   port: :9000
+  ui: http://localhost:3000
 
 bot:
   interval_to_wait:
@@ -17,6 +18,10 @@ github:
   app_id: 313280
   oauth_app_client_id: c599f8cf78501f215c5f
   oauth_app_client_secret: ace20868c34136fc3d0fe8b3926b2f4ae70536c7
+
+slack:
+  client_id: '121068272261.5228299341680'
+  client_secret: c355f2db58fa1aad88ff357d291266a4
 
 mongo:
   connection: mongodb+srv://nudge_admin:io17zdSYcct0QRrB@nudge-cluster.rusree1.mongodb.net/?retryWrites=true&w=majority
