@@ -36,3 +36,20 @@ rm-docker: build ## Delete the docker container including any DB volumes.
 	docker-compose down -v; \
 
 
+# Build local docker images for development.
+.PHONY: build-dev-docker
+build-dev-docker: ## Build docker containers for the entire suite (Front/Core/PG).
+	cd dev; \
+	docker-compose build ; \
+
+# Spin a local docker suite for local development.
+.PHONY: dev-docker
+dev-docker: build-dev-docker ## Build and spawns docker containers for the entire suite
+	cd dev; \
+	docker-compose up
+
+.PHONY: run-dev-backend
+run-dev-backend:
+	go run cmd/*.go --config=dev/config.yml
+
+

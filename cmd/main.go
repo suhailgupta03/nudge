@@ -4,7 +4,9 @@ import (
 	"context"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/file"
+	"github.com/knadh/koanf/providers/posflag"
 	"github.com/knadh/koanf/v2"
+	flag "github.com/spf13/pflag"
 	"go.mongodb.org/mongo-driver/mongo"
 	"io"
 	"log"
@@ -33,9 +35,24 @@ var (
 	dbCtx          context.Context
 )
 
+func initFlags() {
+	f := flag.NewFlagSet("config", flag.ContinueOnError)
+	// Register the commandline flags.
+	f.String("config", "config.yml", "path to config file")
+	if err := f.Parse(os.Args[1:]); err != nil {
+		lo.Fatalf("error loading flags: %v", err)
+	}
+
+	if err := ko.Load(posflag.Provider(f, ".", ko), nil); err != nil {
+		lo.Fatalf("error loading config: %v", err)
+	}
+}
+
 func main() {
 
-	if err := ko.Load(file.Provider("config.yml"), yaml.Parser()); err != nil {
+	initFlags()
+
+	if err := ko.Load(file.Provider(ko.String("config")), yaml.Parser()); err != nil {
 		lo.Fatalf("error loading config from config.yml %v", err)
 	}
 
