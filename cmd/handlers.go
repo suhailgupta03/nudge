@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"net/http"
 )
 
@@ -12,6 +13,11 @@ type okResp struct {
 func initHTTPHandlers(e *echo.Echo, app *App) {
 	var g *echo.Group
 	g = e.Group("")
+
+	e.Use(middleware.StaticWithConfig(middleware.StaticConfig{
+		Root:  "static",
+		Index: "index.html",
+	}))
 
 	e.HTTPErrorHandler = func(err error, c echo.Context) {
 		// Generic, non-echo error. Log it.

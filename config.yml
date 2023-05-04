@@ -2,7 +2,7 @@ name: Nudge Config
 
 server:
   port: :9000
-  ui: http://localhost:3000
+  ui: http://localhost:9000
 
 bot:
   interval_to_wait:
