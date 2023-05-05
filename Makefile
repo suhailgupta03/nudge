@@ -11,7 +11,7 @@ $(BIN): $(shell find . -type f -name "*.go")
 # Run the backend in dev mode.
 .PHONY: run
 run:
-	go run cmd/*.go
+	go run cmd/*.go --config=dev/config.yml
 
 # Use goreleaser to do a dry run producing local builds.
 .PHONY: release-dry
