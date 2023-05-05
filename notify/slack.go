@@ -49,7 +49,7 @@ func (s *SlackNotification) Post(repo repository.RepoModel, pr pr.PRModel, actor
 			"channel": channel,
 		})
 
-		bearer := fmt.Sprintf("Bearer: %s", *userDetails.SlackAccessToken)
+		bearer := fmt.Sprintf("Bearer %s", *userDetails.SlackAccessToken)
 		req, _ := http.NewRequest("POST", "https://slack.com/api/chat.postMessage", bytes.NewBuffer(postBody))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Accept", "application/json")
