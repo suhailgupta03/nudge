@@ -10,6 +10,10 @@ type okResp struct {
 	Data interface{} `json:"data"`
 }
 
+func handlePing(c echo.Context) error {
+	return c.String(http.StatusOK, "pong!")
+}
+
 func initHTTPHandlers(e *echo.Echo, app *App) {
 	var g *echo.Group
 	g = e.Group("")
@@ -27,9 +31,7 @@ func initHTTPHandlers(e *echo.Echo, app *App) {
 		e.DefaultHTTPErrorHandler(err, c)
 	}
 
-	e.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Up and running")
-	})
+	e.GET("/ping", handlePing)
 
 	// Public Endpoints For GitHub Callbacks
 	g.GET("/github/app/callback", handleGitHubAppCallback)

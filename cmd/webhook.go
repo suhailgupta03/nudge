@@ -248,6 +248,11 @@ func handleInstallRepositoryEvent(installation github.InstallationRepositoriesEv
 		}
 
 		// Populate all the PRs for the repositories added
+		for _, inst := range installation.RepositoriesAdded {
+			inst.Owner = installation.Sender
+			// The webhook does not send the owner information, which is required by
+			// the populateActivePRs method
+		}
 		populateActivePRs(app, iToken.GetToken(), installation.RepositoriesAdded)
 	} else if *installation.Action == "removed" {
 		rErr := r.DeleteOne(*installation.Installation.ID)

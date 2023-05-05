@@ -60,7 +60,7 @@ func handleSlackAuthRequest(c echo.Context) error {
 		}
 
 		if resp.StatusCode != 200 {
-			app.log.Printf("Failed to fetch the slack access token with status code ", resp.StatusCode)
+			app.log.Printf("Failed to fetch the slack access token with status code %d ", resp.StatusCode)
 			return errors.New("Failed with status code as " + strconv.Itoa(resp.StatusCode))
 		}
 
