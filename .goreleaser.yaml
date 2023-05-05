@@ -46,6 +46,7 @@ dockers:
     extra_files:
       - config.yml
       - nudgetest.2023-04-14.private-key.pem
+      - static
 
 checksum:
   name_template: 'checksums.txt'
