@@ -75,16 +75,16 @@ func handleSlackAuthRequest(c echo.Context) error {
 		if len(jsonBody.AccessToken) == 0 {
 			var slackErrBody slackErrorResponse
 			json.Unmarshal(body, &slackErrBody)
-			return c.Redirect(307, app.ko.String("server.ui")+"/slack-integration.html?ser="+slackErrBody.Error)
+			return c.Redirect(http.StatusTemporaryRedirect, app.ko.String("server.ui")+"/slack-integration.html?ser="+slackErrBody.Error)
 		} else {
 			qp := url.Values{}
 			qp.Set("sat", jsonBody.AccessToken)
 			qp.Set("u", jsonBody.AuthedUser.Id)
-			return c.Redirect(307, app.ko.String("server.ui")+"/slack-integration.html?"+qp.Encode())
+			return c.Redirect(http.StatusTemporaryRedirect, app.ko.String("server.ui")+"/slack-integration.html?"+qp.Encode())
 		}
 	}
 
-	return c.Redirect(307, app.ko.String("server.ui")+"/slack-integration.html?ser=code_not_found")
+	return c.Redirect(http.StatusTemporaryRedirect, app.ko.String("server.ui")+"/slack-integration.html?ser=code_not_found")
 }
 
 type GitHubSlackMappingRequest struct {

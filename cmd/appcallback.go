@@ -4,6 +4,7 @@ import (
 	"github.com/google/go-github/v52/github"
 	"github.com/labstack/echo/v4"
 	"net/http"
+	"net/url"
 	dbp "nudge/internal/database"
 	prp "nudge/internal/database/pr"
 	"nudge/internal/database/repository"
@@ -71,7 +72,9 @@ func handleGitHubAppCallback(c echo.Context) error {
 			go populateReposToMonitor(app, uModel.GitHubApp.GitHubInstallationAccessToken, installationId)
 		}
 	}
-	return c.JSON(http.StatusOK, okResp{"out"})
+	qp := url.Values{}
+	qp.Set("installed", "true")
+	return c.Redirect(http.StatusTemporaryRedirect, ko.String("server.ui")+"/?"+qp.Encode())
 }
 
 func populateReposToMonitor(app *App, appAccessToken string, installationId int64) {
