@@ -24,7 +24,7 @@ slack:
   client_secret: c355f2db58fa1aad88ff357d291266a4
 
 mongo:
-  connection: mongodb+srv://nudge_admin:io17zdSYcct0QRrB@nudge-cluster.rusree1.mongodb.net/?retryWrites=true&w=majority
+  connection: mongodb+srv://username:password@cluster.xx.mongodb.net/?retryWrites=true&w=majority
   database: nudge
 
 aws:
