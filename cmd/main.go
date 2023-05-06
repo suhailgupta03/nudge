@@ -70,7 +70,7 @@ func main() {
 		lo.Printf("Warn: aws cloudwatch details not present")
 	}
 
-	data, pemErr := os.ReadFile("nudgetest.2023-04-14.private-key.pem")
+	data, pemErr := os.ReadFile("nudge.private-key.pem")
 	if pemErr != nil {
 		lo.Fatalf("Failed to read the application pem file %v", pemErr)
 	}
