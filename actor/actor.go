@@ -1,6 +1,7 @@
 package actor
 
 import (
+	"errors"
 	"github.com/google/go-github/v52/github"
 	"github.com/knadh/koanf/v2"
 	prp "nudge/internal/database/pr"
@@ -42,11 +43,14 @@ func IdentifyActors(delayedPR prp.PRModel, repo repository.RepoModel, ko *koanf.
 	baseBranch := prDetails.Base.Ref
 	protectionRules, protectionErr := g.GetBranchProtection(repo.Name, *baseBranch, repo.Owner)
 	if protectionErr != nil {
-		return nil, protectionErr
+		if !errors.Is(protectionErr, github.ErrBranchNotProtected) {
+			return nil, protectionErr
+		}
+		// If the branch is not protected, move ahead
 	}
 
 	minReviewsRequired := 0
-	if protectionRules.RequiredPullRequestReviews != nil {
+	if protectionRules != nil && protectionRules.RequiredPullRequestReviews != nil {
 		minReviewsRequired = protectionRules.RequiredPullRequestReviews.RequiredApprovingReviewCount
 	}
 
@@ -134,6 +138,7 @@ func isPrApproved(reviews *[]prp.Review, minReviewsRequired int) (bool, map[Gith
 	if minReviewsRequired == 0 {
 		// Since there are no minimum number of reviews required
 		// the PR state will be approved
+		approvals = append(approvals, true)
 		approvals[0] = true
 	} else if reviews != nil {
 		for _, review := range *reviews {

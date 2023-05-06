@@ -32,9 +32,8 @@ func SlackNotificationInit(ko *koanf.Koanf, lo *log.Logger, db *mongo.Database) 
 
 // Post https://api.slack.com/methods/chat.postMessage
 func (s *SlackNotification) Post(repo repository.RepoModel, pr pr.PRModel, actorToNotify string, isReviewer bool) error {
-	message := createNotificationMessage(actorToNotify, isReviewer)
 	prLink := fmt.Sprintf("https://github.com/%s/%s/pull/%d", repo.Owner, repo.Name, pr.Number)
-	message += fmt.Sprintf(" %s", prLink)
+	message := createSlackNotificationMessage(actorToNotify, repo.Name, prLink, pr.Number, isReviewer)
 
 	// Fetch slack user details
 	userDetails, uErr := user.Init(s.db).FindUserByGitHubUsername(actorToNotify)
@@ -71,4 +70,13 @@ func (s *SlackNotification) Post(repo repository.RepoModel, pr pr.PRModel, actor
 		return nil
 	}
 
+}
+
+func createSlackNotificationMessage(actor, repoName, prLink string, prNumber int, isReviewer bool) string {
+	actionVerb := "changes"
+	if isReviewer {
+		actionVerb = "approval"
+	}
+
+	return fmt.Sprintf("Hello %s. PR <%s|#%d> in repository *%s* is blocked on your %s. Please review it ASAP.", actor, prLink, prNumber, repoName, actionVerb)
 }
