@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"io"
 	"log"
+	"nudge/internal/awslog"
 	"nudge/internal/buflog"
 	dbp "nudge/internal/database"
 	"os"
@@ -42,7 +43,6 @@ func initFlags() {
 	if err := f.Parse(os.Args[1:]); err != nil {
 		lo.Fatalf("error loading flags: %v", err)
 	}
-
 	if err := ko.Load(posflag.Provider(f, ".", ko), nil); err != nil {
 		lo.Fatalf("error loading config: %v", err)
 	}
@@ -51,9 +51,23 @@ func initFlags() {
 func main() {
 
 	initFlags()
-
 	if err := ko.Load(file.Provider(ko.String("config")), yaml.Parser()); err != nil {
 		lo.Fatalf("error loading config from config.yml %v", err)
+	}
+
+	awsLogGroup := ko.String("aws.log_group")
+	awsLogStream := ko.String("aws.log_stream")
+	if len(awsLogStream) > 0 && len(awsLogGroup) > 0 {
+		aws := awslog.AWSInit(awsLogGroup, awsLogStream)
+		if aws.DoesLogGroupExist(awsLogGroup) && aws.DoesLogStreamExist(awsLogGroup, awsLogStream) {
+			// Reinitialize the logger with AWS stream added
+			lo = log.New(io.MultiWriter(os.Stdout, bufLog, awslog.New(2, *aws)), "",
+				log.Ldate|log.Ltime|log.Lshortfile)
+		} else {
+			lo.Printf("Warn: Log group or log stream do not exist. Not auto creating them.")
+		}
+	} else {
+		lo.Printf("Warn: aws cloudwatch details not present")
 	}
 
 	data, pemErr := os.ReadFile("nudgetest.2023-04-14.private-key.pem")

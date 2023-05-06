@@ -26,3 +26,7 @@ slack:
 mongo:
   connection: mongodb+srv://nudge_admin:io17zdSYcct0QRrB@nudge-cluster.rusree1.mongodb.net/?retryWrites=true&w=majority
   database: nudge
+
+aws:
+  log_group: "nudge"
+  log_stream: "nudge"
