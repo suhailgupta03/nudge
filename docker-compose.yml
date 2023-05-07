@@ -1,6 +1,6 @@
 
 x-app-defaults: &app-defaults
-  restart: unless-stopped
+  restart: always
   image: suhailbw/nudge:latest
   ports:
     - "9000:9000"
@@ -15,6 +15,10 @@ services:
     container_name: nudge_app
     volumes:
       - ./config.yml:/nudge/config.yml
+      - ./index.html:/nudge/static/index.html
+      - ./privacy.html:/nudge/static/privacy.html
+      - ./toc.html:/nudge/static/toc.html
+      - ./slack-integration.html:/nudge/static/slack-integration.html
 
 networks:
   nudge:
