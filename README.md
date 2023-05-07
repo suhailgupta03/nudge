@@ -2,7 +2,7 @@
 
 Nudge is a Golang application that sends nudge messages to users with overdue pull requests. It also has an optional
 integration with Slack. This has been inspired by the paper titled "Nudge: Accelerating Overdue Pull Requests Toward
-Completion" available at https://dl.acm.org/doi/10.1145/3389496.3390924.
+Completion" available at https://dl.acm.org/doi/abs/10.1145/3544791.
 
 Nudge is available to use on GitHub Marketplace. With Nudge, you can automate the communication process for overdue pull
 requests, allowing you to stay on top of your project and keep it moving forward.
