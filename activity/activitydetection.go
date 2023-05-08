@@ -119,7 +119,7 @@ func (activity *Activity) checkForActivity(prModel prp.PRModel) *ActivityDetecti
 	if activity.ko.String("bot.interval_to_wait.unit") == "m" {
 		timeSinceLastActivity = now.Sub(workflowLastUpdated).Minutes()
 	}
-	if timeSinceLastActivity < activity.ko.Float64("bot.interval_to_wait") {
+	if timeSinceLastActivity < activity.ko.Float64("bot.interval_to_wait.time") {
 		// Nothing more to be done!
 		activityDetection.Detected = true
 	} else {
