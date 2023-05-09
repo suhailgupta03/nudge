@@ -1,6 +1,7 @@
 package notify
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -38,7 +39,7 @@ func TestCreateSlackNotificationMessage(t *testing.T) {
 			if !strings.Contains(message, tt.actor) || !strings.Contains(message, tt.repoName) || !strings.Contains(message, tt.prLink) {
 				t.Errorf("Expected message to contain actor, repoName, and prLink")
 			}
-			prNumInMsg := strings.Contains(message, "|#"+string(tt.prNumber))
+			prNumInMsg := strings.Contains(message, "|#"+strconv.Itoa(tt.prNumber))
 			actionVerb := "approval"
 			if !tt.isReviewer {
 				actionVerb = "changes"

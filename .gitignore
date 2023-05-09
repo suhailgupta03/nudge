@@ -1,7 +1,7 @@
 generate_app_token.go
 *.pem
 dist/
-.idea
+.idea/*
 .DS_Store
 *.env
 nudge

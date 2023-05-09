@@ -37,6 +37,16 @@ type delayedPRChanDetails struct {
 	DelayedPRList chan []prp.PRModel
 }
 
+type ActivityService interface {
+	ActivityCheckTrigger() (*[]DelayedPRDetails, error)
+	FindDelayedPRs(repo repository.RepoModel) chan []prp.PRModel
+	IsPRMoving(openPR prp.PRModel, checkForActivityI CheckForActivityInterface) *bool
+}
+
+type CheckForActivityInterface interface {
+	CheckForActivity(prModel prp.PRModel) *ActivityDetection
+}
+
 func (activity *Activity) ActivityCheckTrigger() (*[]DelayedPRDetails, error) {
 	repo := repository.Init(activity.db)
 	repoList, repoFetchErr := repo.GetAll()
@@ -49,7 +59,7 @@ func (activity *Activity) ActivityCheckTrigger() (*[]DelayedPRDetails, error) {
 	for _, repo := range *repoList {
 		delayedPRChanList = append(delayedPRChanList, delayedPRChanDetails{
 			Repository:    repo,
-			DelayedPRList: activity.findDelayedPRs(repo), // Loads PR using simultaneous coroutines
+			DelayedPRList: activity.FindDelayedPRs(repo), // Loads PR using simultaneous coroutines
 		})
 	}
 
@@ -66,11 +76,33 @@ func (activity *Activity) ActivityCheckTrigger() (*[]DelayedPRDetails, error) {
 	return &delayedPrs, nil
 }
 
-// checkForActivity Once a pull request’s actual lifetime crosses the estimated lifetime
+func (activity *Activity) FindDelayedPRs(repo repository.RepoModel) chan []prp.PRModel {
+	delayedPRs := make(chan []prp.PRModel)
+	go func() {
+		pr := prp.Init(activity.db)
+		prList := make([]prp.PRModel, 0)
+		openPRs, prErr := pr.GetOpenPRs(repo.RepoId)
+		if prErr != nil {
+			activity.lo.Printf("Failed to fetch open PRs for %s - %v", repo.Name, prErr)
+		}
+
+		for _, openPR := range *openPRs {
+			moving := activity.IsPRMoving(openPR, activity)
+			if !*moving {
+				prList = append(prList, openPR)
+			}
+		}
+		delayedPRs <- prList
+	}()
+
+	return delayedPRs
+}
+
+// CheckForActivity Once a pull request’s actual lifetime crosses the estimated lifetime
 // (using the effort estimation models), the next module, Activity Detection, is run,
 // which checks for any activity in the pull request environment. If there is an activity
 // observed in the last 24 hours, then the workflow is terminated.
-func (activity *Activity) checkForActivity(prModel prp.PRModel) *ActivityDetection {
+func (activity *Activity) CheckForActivity(prModel prp.PRModel) *ActivityDetection {
 
 	//  Activity Detection
 	activityDetection := new(ActivityDetection)
@@ -134,32 +166,22 @@ func (activity *Activity) checkForActivity(prModel prp.PRModel) *ActivityDetecti
 	return activityDetection
 }
 
-func (activity *Activity) findDelayedPRs(repo repository.RepoModel) chan []prp.PRModel {
-	delayedPRs := make(chan []prp.PRModel)
-	go func() {
-		pr := prp.Init(activity.db)
-		prList := make([]prp.PRModel, 0)
-		openPRs, prErr := pr.GetOpenPRs(repo.RepoId)
-		if prErr != nil {
-			activity.lo.Printf("Failed to fetch open PRs for %s - %v", repo.Name, prErr)
-		}
+// IsPRMoving checks if there has been some activity in the PR. Returns true
+// if the hours elapsed since PR creation is less than the predicted lifetime.
+func (activity *Activity) IsPRMoving(openPR prp.PRModel, checkForActivityI CheckForActivityInterface) *bool {
+	r := true
+	elapsedHoursSincePRCreation := (time.Now().Unix() - openPR.PRCreatedAt) / 3600
+	if elapsedHoursSincePRCreation > int64(openPR.LifeTime) {
+		// Only if the hours elapsed have crossed the predicted, we'll
+		// consider the PR for any activity
+		activityCheck := checkForActivityI.CheckForActivity(openPR)
 
-		for _, openPR := range *openPRs {
-			elapsedHoursSincePRCreation := (time.Now().Unix() - openPR.PRCreatedAt) / 3600
-			if elapsedHoursSincePRCreation > int64(openPR.LifeTime) {
-				// Only if the hours elapsed have crossed the predicted, we'll
-				// consider the PR for any activity
-				activityCheck := activity.checkForActivity(openPR)
-				if activityCheck.Detected {
-					// Terminating the workflow since there is an activity observed in the last 24 hours
-					continue
-				} else {
-					prList = append(prList, openPR)
-				}
-			}
+		if activityCheck.Detected {
+			// Terminating the workflow since there is an activity observed in the last 24 hours
+			// Nothing to do here!
+		} else {
+			r = false
 		}
-		delayedPRs <- prList
-	}()
-
-	return delayedPRs
+	}
+	return &r
 }

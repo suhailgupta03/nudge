@@ -139,30 +139,39 @@ func isPrApproved(reviews *[]prp.Review, minReviewsRequired int) (bool, map[Gith
 		// Since there are no minimum number of reviews required
 		// the PR state will be approved
 		approvals = append(approvals, true)
-		approvals[0] = true
+	} else if reviews == nil {
+		// reviews are nil but min number of reviews required
+		// are greater than 0
+		approvals = append(approvals, false)
 	} else if reviews != nil {
-		for _, review := range *reviews {
-			reviewer := GithubUserName(*review.Reviewer)
-			_, exists := userReviewMap[reviewer]
-			if exists {
-				userReviewMap[reviewer] = append(userReviewMap[reviewer], review)
-			} else {
-				userReviewMap[reviewer] = []prp.Review{review}
+		if len(*reviews) < minReviewsRequired {
+			// If the approvals received are less than
+			// the minimum number of reviews required
+			approvals = append(approvals, false)
+		} else {
+			for _, review := range *reviews {
+				reviewer := GithubUserName(*review.Reviewer)
+				_, exists := userReviewMap[reviewer]
+				if exists {
+					userReviewMap[reviewer] = append(userReviewMap[reviewer], review)
+				} else {
+					userReviewMap[reviewer] = []prp.Review{review}
+				}
 			}
-		}
 
-		for _, v := range userReviewMap {
-			sort.Sort(byReviewTime(v))
-		}
+			for _, v := range userReviewMap {
+				sort.Sort(byReviewTime(v))
+			}
 
-		for _, v := range userReviewMap {
-			for _, r := range v {
-				if *r.ReviewState == "changes_requested" {
-					approvals = append(approvals, false)
-					break
-				} else if *r.ReviewState == "approved" {
-					approvals = append(approvals, true)
-					break
+			for _, v := range userReviewMap {
+				for _, r := range v {
+					if *r.ReviewState == "changes_requested" {
+						approvals = append(approvals, false)
+						break
+					} else if *r.ReviewState == "approved" {
+						approvals = append(approvals, true)
+						break
+					}
 				}
 			}
 		}
