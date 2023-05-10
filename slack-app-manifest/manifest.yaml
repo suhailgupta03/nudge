@@ -1,0 +1,25 @@
+display_information:
+  name: Nudge Bot Messenger
+  description: Nudges a user to keep code reviews on GitHub moving.
+  background_color: "#da3a79"
+  long_description: This Slack application for Nudge Bot helps users stay updated on their pull requests by sending notifications when their pull requests are blocked because of them. It allows users to quickly address the issue and get their pull requests moving again. You must install the Nudge Bot in your GitHub repositories for this application to work.
+features:
+  bot_user:
+    display_name: Nudge Bot
+    always_online: true
+oauth_config:
+  redirect_urls:
+    - https://nudgebt.app/slack/auth
+  scopes:
+    bot:
+      - channels:read
+      - chat:write
+      - chat:write.public
+      - users.profile:read
+settings:
+  interactivity:
+    is_enabled: true
+    request_url: https://example.com/slack/message_action
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false
