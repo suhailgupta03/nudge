@@ -6,3 +6,4 @@ dist/
 *.env
 nudge
 config.yml
+coverage.txt
