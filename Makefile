@@ -59,4 +59,4 @@ build-test-docker:
 
 .PHONY: run-tests
 run-tests: build-test-docker
-	docker-compose -f test/docker-compose.yml run backend bash -c "go test -v ./..."
+	docker-compose -f test/docker-compose.yml run backend bash -c "go test -v ./... -coverpkg=./... -coverprofile coverage.txt"
