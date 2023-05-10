@@ -1,0 +1,37 @@
+services:
+  db:
+    image: mongo:6.0.5
+    ports:
+      - "27019:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: nudge
+      MONGO_INITDB_ROOT_PASSWORD: nudge
+    networks:
+      - nudge-test
+    restart: unless-stopped
+    volumes:
+      - type: volume
+        source: nudge-test-db
+        target: /var/lib/nudge/data
+
+  backend:
+    build:
+      context: ../
+      dockerfile: test/app.Dockerfile
+    environment:
+      MONGODB_URI_TEST: mongodb://nudge:nudge@db:27017
+    ports:
+      - "9000:9000"
+    depends_on:
+      - db
+    volumes:
+      - ../:/nudge
+    networks:
+      - nudge-test
+
+
+volumes:
+  nudge-test-db:
+
+networks:
+  nudge-test:
