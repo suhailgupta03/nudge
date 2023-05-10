@@ -55,8 +55,17 @@ func handleGitHubAppCallback(c echo.Context) error {
 				GitHubInstallationAccessToken: iToken.GetToken(),
 				InstallationId:                installationId,
 			}
-			uModel.GitHubUsername = *me.Login
-			uModel.Email = *me.Email
+			if me.Login != nil {
+				uModel.GitHubUsername = *me.Login
+			} else {
+				// If we did not get the GitHub username
+				// simply return
+				return c.Redirect(http.StatusTemporaryRedirect, ko.String("server.ui")+"/?err=username_private")
+			}
+
+			if me.Email != nil {
+				uModel.Email = *me.Email
+			}
 
 			uErr := uCollection.Create(uModel)
 			if uErr != nil {
