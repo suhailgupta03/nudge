@@ -41,4 +41,6 @@ func initHTTPHandlers(e *echo.Echo, app *App) {
 	// Public Endpoints for Slack Callbacks
 	g.GET("/slack/auth", handleSlackAuthRequest)
 	g.POST("/slack/github", storeGitHubSlackMapping)
+	// the following endpoint is internal [does not use auth as of today]
+	g.POST("/slack/users", storeGitHubSlackMappingAfterInstallation)
 }

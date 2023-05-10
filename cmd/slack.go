@@ -93,6 +93,16 @@ type GitHubSlackMappingRequest struct {
 	SlackUserId      string `json:"slack_user_id"`
 }
 
+type GitHubSlackMappingRequestAfterInstallation struct {
+	GitHubUsername string `json:"git_hub_username"`
+	SlackUserId    string `json:"slack_user_id"`
+}
+
+type CreateNewSlackUsers struct {
+	InstallationId int64                                        `json:"installation_id"`
+	Mapping        []GitHubSlackMappingRequestAfterInstallation `json:"mapping"`
+}
+
 func storeGitHubSlackMapping(c echo.Context) error {
 	var (
 		app = c.Get("app").(*App)
@@ -111,4 +121,37 @@ func storeGitHubSlackMapping(c echo.Context) error {
 	} else {
 		return c.JSON(http.StatusOK, "")
 	}
+}
+
+// storeGitHubSlackMappingAfterInstallation use this method to populate new users
+// for the slack workspace. This assumes that the GitHub and the slack installation is complete
+// If the Slack installation is not complete when this method is called, the
+// workflow will not start generating the Slack notifications
+func storeGitHubSlackMappingAfterInstallation(c echo.Context) error {
+	var (
+		app = c.Get("app").(*App)
+	)
+
+	var request CreateNewSlackUsers
+	err := c.Bind(&request)
+	if err != nil || len(request.Mapping) == 0 {
+		return c.String(http.StatusBadRequest, "bad request")
+	}
+
+	u := user.Init(app.db)
+	m := make([]user.GithubSlackMapping, 0)
+	for _, rm := range request.Mapping {
+		m = append(m, user.GithubSlackMapping{
+			GitHubUsername: rm.GitHubUsername,
+			SlackUserId:    rm.SlackUserId,
+		})
+	}
+
+	err = u.CreateNewSlackUsers(request.InstallationId, m)
+	if err != nil {
+		return c.JSON(http.StatusNotFound, err.Error())
+	} else {
+		return c.JSON(http.StatusOK, "")
+	}
+
 }

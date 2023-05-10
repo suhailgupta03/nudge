@@ -41,8 +41,19 @@ func (s *SlackNotification) Post(repo repository.RepoModel, pr pr.PRModel, actor
 		return uErr
 	}
 
-	if userDetails.SlackUserId != nil && userDetails.SlackAccessToken != nil {
+	if userDetails.SlackUserId != nil && userDetails.SlackAccessToken != nil { // This means that
+		// the Slack app has been installed
 		channel := *userDetails.SlackUserId
+		if userDetails.GitHubUsername != actorToNotify && userDetails.GithubSlackMapping != nil {
+			// If the actor to notify is not the root user, extract the slack user id
+			// from the stored mapping
+			for _, m := range *userDetails.GithubSlackMapping {
+				if m.GitHubUsername == actorToNotify {
+					channel = m.SlackUserId
+					break
+				}
+			}
+		}
 		postBody, _ := json.Marshal(map[string]string{
 			"text":    message,
 			"channel": channel,
