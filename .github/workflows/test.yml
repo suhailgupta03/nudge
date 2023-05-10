@@ -1,0 +1,24 @@
+name: Run Tests
+
+on: [push, pull_request]
+
+jobs:
+
+  test:
+    strategy:
+      matrix: 
+        go: ['1.20']
+      
+    runs-on: ubuntu-20.04
+    name: Go ${{ matrix.go }} Tests
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: ${{ matrix.go }}
+
+    - name: Run Docker Compose Tests
+      run: make run-tests
