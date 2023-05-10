@@ -53,3 +53,10 @@ run-dev-backend:
 	go run cmd/*.go --config=dev/config.yml
 
 
+.PHONY: build-test-docker
+build-test-docker:
+	docker-compose -f test/docker-compose.yml build
+
+.PHONY: run-tests
+run-tests: build-test-docker
+	docker-compose -f test/docker-compose.yml run backend bash -c "go test -v ./..."

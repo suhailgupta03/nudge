@@ -1,4 +1,5 @@
 # Nudge Bot
+![logo.png](static/logo.png)
 
 Nudge is a Golang application that sends nudge messages to users with overdue pull requests. It also has an optional
 integration with Slack. This has been inspired by the paper titled "Nudge: Accelerating Overdue Pull Requests Toward
@@ -21,9 +22,12 @@ requests, allowing you to stay on top of your project and keep it moving forward
 3. Install the dependencies: ```go get -u ./...```
 4. Build and run the application: ```make dev-docker```
 
+**Run tests**
+```shell
+make run-tests
+```
 
 **Create a release**
-
 ```shell
 make release
 ```
