@@ -76,3 +76,13 @@ func (repo *Repository) DeleteOne(installationId int64) error {
 	_, err := repo.Collection.DeleteOne(ctx, where)
 	return err
 }
+
+func (repo *Repository) DeleteOneById(repoId int64) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	where := map[string]int64{
+		"repo_id": repoId,
+	}
+	_, err := repo.Collection.DeleteOne(ctx, where)
+	return err
+}

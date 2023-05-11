@@ -249,21 +249,25 @@ func handleInstallRepositoryEvent(installation github.InstallationRepositoriesEv
 
 		// Populate all the PRs for the repositories added
 		for _, inst := range installation.RepositoriesAdded {
-			inst.Owner = installation.Sender
+			inst.Owner = installation.Installation.Account
 			// The webhook does not send the owner information, which is required by
 			// the populateActivePRs method
 		}
 		populateActivePRs(app, iToken.GetToken(), installation.RepositoriesAdded)
 	} else if *installation.Action == "removed" {
-		rErr := r.DeleteOne(*installation.Installation.ID)
-		if rErr != nil {
-			lo.Printf("Error removing repository during the remove repository event %v", rErr)
-		}
 		pr := prp.Init(app.db)
 		for _, repo := range installation.RepositoriesRemoved {
-			err := pr.DeleteAll(*repo.ID)
-			if err != nil {
-				lo.Printf("Error removing PRs during the remove repository event %v", err)
+			if repo != nil {
+				// delete the repos
+				rErr := r.DeleteOneById(*repo.ID)
+				if rErr != nil {
+					lo.Printf("Error removing the repository during the remove repository event %v", rErr)
+				}
+				// delete all the linked PRs
+				err := pr.DeleteAll(*repo.ID)
+				if err != nil {
+					lo.Printf("Error removing PRs during the remove repository event %v", err)
+				}
 			}
 		}
 	}
