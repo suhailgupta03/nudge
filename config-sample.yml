@@ -12,6 +12,8 @@ bot:
     unit: h
     time: 1
 
+  ignore_bot_prs: true
+  
 github:
   client_id: Iv1.foobar
   client_secret: foobar

@@ -11,6 +11,7 @@ import (
 	uc "nudge/internal/database/user"
 	"nudge/internal/provider/github"
 	"strconv"
+	"strings"
 )
 
 func handleGitHubAppCallback(c echo.Context) error {
@@ -125,8 +126,24 @@ func populateActivePRs(app *App, appAccessToken string, repos []*github.Reposito
 		}
 		prModelList := make([]*prp.PRModel, 0)
 		for _, pr := range prs {
-			model := prp.CreateDataModelForPR(*pr, *repo.ID)
-			prModelList = append(prModelList, model)
+			if app.ko.Bool("bot.ignore_bot_prs") {
+				if pr.User != nil && pr.User.Type != nil && strings.ToLower(*pr.User.Type) != "bot" {
+					// Ignore the PRs raised by bots!
+					model := prp.CreateDataModelForPR(*pr, *repo.ID)
+					prModelList = append(prModelList, model)
+					app.log.Printf("Ignoring the PR#%d for repo %s raised by bot", *pr.Number, *repo.Name)
+				} else {
+					// Since user is not defined (and its type is not known)
+					// add to the PR list
+					model := prp.CreateDataModelForPR(*pr, *repo.ID)
+					prModelList = append(prModelList, model)
+					app.log.Printf("Cannot determine if the PR#%d for repo %s is raised by the bot", *pr.Number, *repo.Name)
+				}
+			} else {
+				// Also include the PRs raised by the bots
+				model := prp.CreateDataModelForPR(*pr, *repo.ID)
+				prModelList = append(prModelList, model)
+			}
 		}
 		bErr := prModel.BulkCreate(prModelList)
 		if bErr != nil {
