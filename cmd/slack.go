@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"nudge/internal/database/user"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -103,6 +104,24 @@ type CreateNewSlackUsers struct {
 	Mapping        []GitHubSlackMappingRequestAfterInstallation `json:"mapping"`
 }
 
+type SlackGitHubMappingCommand struct {
+	ApiAppId            string `form:"api_app_id"`
+	ChannelId           string `form:"channel_id"`
+	ChannelName         string `form:"channel_name"`
+	Command             string `form:"command"`
+	EnterpriseId        string `form:"enterprise_id,omitempty"`
+	EnterpriseName      string `form:"enterprise_name,omitempty"`
+	IsEnterpriseInstall bool   `form:"is_enterprise_install,omitempty"`
+	ResponseUrl         string `form:"response_url"`
+	TeamDomain          string `form:"team_domain,omitempty"`
+	TeamId              string `form:"team_id"`
+	Text                string `form:"text"`
+	Token               string `form:"token"`
+	TriggerId           string `form:"trigger_id"`
+	UserId              string `form:"user_id"`
+	UserName            string `form:"user_name"`
+}
+
 func storeGitHubSlackMapping(c echo.Context) error {
 	var (
 		app = c.Get("app").(*App)
@@ -154,4 +173,38 @@ func storeGitHubSlackMappingAfterInstallation(c echo.Context) error {
 		return c.JSON(http.StatusOK, "")
 	}
 
+}
+
+// / handleSlackMappingCommand maps the slack's user id with the github username
+// example command /map-github installation-id github-username
+func handleSlackMappingCommand(c echo.Context) error {
+	var (
+		app = c.Get("app").(*App)
+	)
+
+	var request SlackGitHubMappingCommand
+	err := c.Bind(&request)
+	if err != nil || len(request.UserId) == 0 || len(request.Text) == 0 {
+		return c.String(http.StatusBadRequest, "bad request")
+	}
+
+	re := regexp.MustCompile(`\s+`)
+	commandSplit := re.Split(request.Text, -1)
+	if len(commandSplit) != 2 {
+		return c.String(http.StatusBadRequest, "Err..! Use command like this /map-github installation-id myGitHubUsername")
+	}
+	installationId, castErr := strconv.ParseInt(commandSplit[0], 10, 64)
+	if castErr != nil {
+		return c.String(http.StatusBadRequest, "Please check if the installation id is correct")
+	}
+	githubUserName := commandSplit[1]
+	slackUserId := request.UserId
+
+	u := user.Init(app.db)
+	updateErr := u.CreateNewSlackUsers(installationId, []user.GithubSlackMapping{{GitHubUsername: githubUserName, SlackUserId: slackUserId}})
+	if updateErr != nil {
+		return c.JSON(http.StatusNotFound, err.Error())
+	} else {
+		return c.JSON(http.StatusOK, "Great! You will now start receiving the notifications")
+	}
 }
