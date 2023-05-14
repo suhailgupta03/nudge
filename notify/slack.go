@@ -36,7 +36,7 @@ func (s *SlackNotification) Post(repo repository.RepoModel, pr pr.PRModel, actor
 	message := createSlackNotificationMessage(actorToNotify, repo.Name, prLink, pr.Number, isReviewer)
 
 	// Fetch slack user details
-	userDetails, uErr := user.Init(s.db).FindUserByGitHubUsername(actorToNotify)
+	userDetails, uErr := user.Init(s.db).FindUserByGitHubUsername(actorToNotify, repo.InstallationId)
 	if uErr != nil {
 		return uErr
 	}

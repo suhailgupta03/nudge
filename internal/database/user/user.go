@@ -115,7 +115,7 @@ func (u *User) CreateNewSlackUsers(installationId int64, mapping []GithubSlackMa
 	r := u.Collection.FindOneAndUpdate(ctx, where, toUpdate, nil)
 	return r.Err()
 }
-func (u *User) FindUserByGitHubUsername(githubUserName string) (*UserModel, error) {
+func (u *User) FindUserByGitHubUsername(githubUserName string, installationId int64) (*UserModel, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -128,6 +128,7 @@ func (u *User) FindUserByGitHubUsername(githubUserName string) (*UserModel, erro
 				},
 			}},
 		},
+		"git_hub_app.installation_id": installationId,
 	}
 
 	r := u.Collection.FindOne(ctx, where)
