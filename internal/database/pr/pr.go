@@ -238,5 +238,15 @@ func CreateDataModelForPR(pr github.PullRequest, repoId int64) *PRModel {
 	model.PRUpdatedAt = pr.UpdatedAt.Unix()
 	model.LifeTime = prediction.EstimateLifeTime()
 	model.WorkflowState = WorkFlowStateActive
+	if len(pr.RequestedReviewers) > 0 {
+		reviewers := make([]string, 0)
+		for _, r := range pr.RequestedReviewers {
+			if r.Login != nil {
+				reviewers = append(reviewers, *r.Login)
+			}
+		}
+		model.RequestedReviewers = &reviewers
+	}
+	// Update with the reviewers if there is any
 	return model
 }
