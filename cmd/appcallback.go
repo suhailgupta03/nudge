@@ -137,7 +137,9 @@ func populateActivePRs(app *App, appAccessToken string, repos []*github.Reposito
 					// add to the PR list
 					model := prp.CreateDataModelForPR(*pr, *repo.ID)
 					prModelList = append(prModelList, model)
-					app.log.Printf("Cannot determine if the PR#%d for repo %s is raised by the bot", *pr.Number, *repo.Name)
+					if pr.User != nil && pr.User.Type != nil {
+						app.log.Printf("User type detected as %s for PR#%d for repo %s", strings.ToLower(*pr.User.Type), *pr.Number, *repo.Name)
+					}
 				}
 			} else {
 				// Also include the PRs raised by the bots
