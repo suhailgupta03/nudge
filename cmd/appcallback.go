@@ -127,11 +127,10 @@ func populateActivePRs(app *App, appAccessToken string, repos []*github.Reposito
 		prModelList := make([]*prp.PRModel, 0)
 		for _, pr := range prs {
 			if app.ko.Bool("bot.ignore_bot_prs") {
-				if pr.User != nil && pr.User.Type != nil && strings.ToLower(*pr.User.Type) != "bot" {
+				if pr.User != nil && pr.User.Type != nil && strings.ToLower(*pr.User.Type) == "bot" {
 					// Ignore the PRs raised by bots!
-					model := prp.CreateDataModelForPR(*pr, *repo.ID)
-					prModelList = append(prModelList, model)
 					app.log.Printf("Ignoring the PR#%d for repo %s raised by bot", *pr.Number, *repo.Name)
+					continue
 				} else {
 					// Since user is not defined (and its type is not known)
 					// add to the PR list
