@@ -13,6 +13,8 @@ bot:
     time: 1
 
   ignore_bot_prs: true
+  skip_sunday: true
+  follow_up_threshold_comments: 7
 
 github:
   client_id: Iv1.foobar

@@ -3,6 +3,7 @@ package main
 import (
 	"nudge/activity"
 	"nudge/actor"
+	prm "nudge/internal/database/pr"
 	"nudge/notify"
 	"time"
 )
@@ -28,6 +29,20 @@ func Workflow() {
 			continue
 		}
 		if len(actorDetails) > 0 {
+			if ko.Bool("bot.skip_sunday") && isSunday() {
+				// Do not send a nudge on Sunday if the configuration
+				// says so
+				continue
+			}
+
+			if pr.DelayedPR.TotalBotComments != nil {
+				if *pr.DelayedPR.TotalBotComments >= ko.Int("bot.follow_up_threshold_comments") {
+					// Since this has exceeded the total number of comments a bot
+					// can make, will no longer be sending the nudges
+					continue
+				}
+
+			}
 			actor := actorDetails[0].GithubUserName
 			isReviewer := actorDetails[0].IsReviewer
 			lo.Printf("Review is stuck because of %s", actor)
@@ -45,8 +60,20 @@ func Workflow() {
 				lo.Printf("Failed to post a message to slack %v", slackErr)
 			}
 
+			/**
+			Increment the comment counter for this PR
+			*/
+			prm.Init(database).IncrementTotalCommentsMade(pr.DelayedPR.PRID)
 		}
 	}
 
 	lo.Printf("Completed the workflow in %v seconds", time.Now().Unix()-start)
+}
+
+func isSunday() bool {
+	if time.Now().Weekday() == time.Sunday {
+		return true
+	} else {
+		return false
+	}
 }

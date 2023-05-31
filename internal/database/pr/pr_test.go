@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/go-github/v52/github"
+	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -230,6 +231,9 @@ func TestPR_DeleteAll(t *testing.T) {
 }
 
 func TestCreateDataModelForPR(t *testing.T) {
+	setUp()
+	defer tearDown()
+
 	exampleCreatedAt := time.Now()
 	exampleUpdatedAt := exampleCreatedAt.Add(2 * time.Hour)
 
@@ -247,5 +251,83 @@ func TestCreateDataModelForPR(t *testing.T) {
 		prModel.RepoId != 1 || prModel.Status != *ghPr.State ||
 		prModel.PRCreatedAt != ghPr.CreatedAt.Unix() || prModel.PRUpdatedAt != ghPr.UpdatedAt.Unix() {
 		t.Errorf("CreateDataModelForPR did not create the correct PRModel")
+	}
+}
+
+func TestIncrementTotalCommentsMade(t *testing.T) {
+	setUp()
+	defer tearDown()
+
+	prRepo := Init(dbTest)
+
+	testCases := []struct {
+		description      string
+		inputPRID        int64
+		createPR         bool
+		initialComments  int
+		expectedComments int
+		expectedError    error
+	}{
+		{
+			description:      "Increment total bot comments when a PRModel exists",
+			inputPRID:        123456,
+			createPR:         true,
+			initialComments:  0,
+			expectedComments: 1,
+			expectedError:    nil,
+		},
+		{
+			description:      "Increment total bot comments when a PRModel exists",
+			inputPRID:        123457,
+			createPR:         true,
+			initialComments:  5,
+			expectedComments: 6,
+			expectedError:    nil,
+		},
+		{
+			description:   "Increment total bot comments when a PRModel does not exist",
+			inputPRID:     999999,
+			createPR:      false,
+			expectedError: nil,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.description, func(t *testing.T) {
+			if testCase.createPR {
+				pr := &PRModel{
+					PRID:             testCase.inputPRID,
+					RepoId:           654321,
+					Status:           "open",
+					TotalBotComments: new(int),
+					PRCreatedAt:      time.Now().Unix(),
+					PRUpdatedAt:      time.Now().Unix(),
+					CreatedAt:        time.Now().Unix(),
+					UpdatedAt:        time.Now().Unix(),
+				}
+				if testCase.initialComments > 0 {
+					*pr.TotalBotComments = testCase.initialComments
+				}
+				err := prRepo.Create(pr)
+				if err != nil {
+					t.Fatal("Failed to create test PR:", err)
+				}
+				defer prRepo.Collection.DeleteOne(context.Background(), map[string]interface{}{"prid": testCase.inputPRID})
+				testCase.inputPRID = pr.PRID
+			}
+
+			err := prRepo.IncrementTotalCommentsMade(testCase.inputPRID)
+
+			assert.Equal(t, testCase.expectedError, err)
+
+			if err == nil && testCase.createPR {
+				var updatedPR PRModel
+				err = prRepo.Collection.FindOne(context.Background(), map[string]interface{}{"prid": testCase.inputPRID}).Decode(&updatedPR)
+				if err != nil {
+					t.Fatal("Failed to retrieve updated PRModel:", err)
+				}
+				assert.Equal(t, testCase.expectedComments, *updatedPR.TotalBotComments)
+			}
+		})
 	}
 }

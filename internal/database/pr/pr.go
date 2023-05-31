@@ -32,6 +32,7 @@ type PRModel struct {
 	LastWorkflowActionCategoryRecorded *string   `json:"last_workflow_action_category_recorded,omitempty" bson:"last_workflow_action_category_recorded,omitempty"`
 	RequestedReviewers                 *[]string `json:"requested_reviewers,omitempty" bson:"requested_reviewers,omitempty"`
 	Reviews                            *[]Review `json:"reviews,omitempty" bson:"reviews,omitempty"`
+	TotalBotComments                   *int      `json:"total_bot_comments,omitempty" bson:"total_bot_comments,omitempty"`
 	PRCreatedAt                        int64     `json:"pr_created_at" bson:"pr_created_at"`
 	PRUpdatedAt                        int64     `json:"pr_updated_at" bson:"pr_updated_at"`
 	CreatedAt                          int64     `bson:"created_at" json:"created_at" bson:"created_at"`
@@ -225,6 +226,24 @@ func (pr *PR) DeleteAll(repoId int64) error {
 		"repo_id": repoId,
 	}
 	_, err := pr.Collection.DeleteMany(ctx, where)
+	return err
+}
+
+func (pr *PR) IncrementTotalCommentsMade(prId int64) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	where := map[string]interface{}{
+		"prid": prId,
+	}
+	toUpdate := map[string]interface{}{
+		"$inc": map[string]interface{}{
+			"total_bot_comments": 1,
+		},
+		"$set": map[string]interface{}{
+			"updated_at": time.Now().Unix(),
+		},
+	}
+	_, err := pr.Collection.UpdateOne(ctx, where, toUpdate)
 	return err
 }
 
