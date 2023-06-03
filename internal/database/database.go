@@ -39,6 +39,7 @@ var indexDetails = map[string][]mongo.IndexModel{
 		{Keys: bson.D{{"git_hub_username", 1}}},
 		{Keys: bson.D{{"git_hub_user_id", 1}}},
 		{Keys: bson.D{{"email", 1}}},
+		{Keys: bson.D{{"slack_access_token", 1}}},
 		{Keys: bson.D{{"git_hub_app.installation_id", 1}}, Options: options.Index().SetUnique(true)},
 	},
 	RepositoryCollection: {

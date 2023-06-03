@@ -21,9 +21,10 @@ oauth_config:
       - channels:read
       - chat:write
       - chat:write.public
+      - commands
+      - groups:read
       - users.profile:read
       - users:read
-      - commands
 settings:
   interactivity:
     is_enabled: true

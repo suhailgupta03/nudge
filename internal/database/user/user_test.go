@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -291,4 +292,75 @@ func TestCreateNewSlackUsers(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestFindUserTimezoneByInstallationId(t *testing.T) {
+	setUp()
+	defer tearDown()
+
+	userRepo := Init(dbTest)
+
+	testCases := []struct {
+		description      string
+		userModel        UserModel
+		inputInstallId   int64
+		expectedError    error
+		expectedTimezone *string
+		expectedBizHours *NotificationBusinessHours
+	}{
+		{
+			description: "Find TimeZone and BusinessHours with an existing installation ID",
+			userModel: UserModel{
+				GitHubUsername: "test_user",
+				GitHubApp: GitHubAppModel{
+					InstallationId: 123456,
+				},
+				TimeZone: StringPtr("America/New_York"),
+				BusinessHours: &NotificationBusinessHours{
+					StartHours: 9,
+					EndHours:   17,
+				},
+			},
+			inputInstallId:   123456,
+			expectedError:    nil,
+			expectedTimezone: StringPtr("America/New_York"),
+			expectedBizHours: &NotificationBusinessHours{StartHours: 9, EndHours: 17},
+		},
+		{
+			description:      "Find TimeZone and BusinessHours with a non-existing installation ID",
+			inputInstallId:   999999,
+			expectedError:    mongo.ErrNoDocuments,
+			expectedTimezone: nil,
+			expectedBizHours: nil,
+		},
+		{
+			description:      "Find TimeZone and BusinessHours with an invalid argument (negative installation ID)",
+			inputInstallId:   -1,
+			expectedError:    mongo.ErrNoDocuments,
+			expectedTimezone: nil,
+			expectedBizHours: nil,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.description, func(t *testing.T) {
+			if testCase.userModel.GitHubApp.InstallationId != 0 {
+				err := userRepo.Create(&testCase.userModel)
+				if err != nil {
+					t.Fatal("Failed to create test user:", err)
+				}
+				defer userRepo.Delete(testCase.userModel.GitHubApp.InstallationId)
+			}
+
+			timezone, bizHours, err := userRepo.FindUserTimezoneByInstallationId(testCase.inputInstallId)
+
+			assert.Equal(t, testCase.expectedError, err)
+			assert.Equal(t, testCase.expectedTimezone, timezone)
+			assert.Equal(t, testCase.expectedBizHours, bizHours)
+		})
+	}
+}
+
+func StringPtr(s string) *string {
+	return &s
 }

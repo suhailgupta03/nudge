@@ -17,7 +17,13 @@ type ActorDetails struct {
 	GithubUserName GithubUserName
 }
 
-func IdentifyActors(delayedPR prp.PRModel, repo repository.RepoModel, ko *koanf.Koanf) ([]ActorDetails, error) {
+type ActorIdentifier interface {
+	IdentifyActors(delayedPR prp.PRModel, repo repository.RepoModel, ko *koanf.Koanf) ([]ActorDetails, error)
+}
+
+type Actor struct{}
+
+func (actor *Actor) IdentifyActors(delayedPR prp.PRModel, repo repository.RepoModel, ko *koanf.Koanf) ([]ActorDetails, error) {
 	// Fetch the latest PR details from GitHub
 
 	// Extract the reviewers in from the PR

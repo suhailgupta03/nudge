@@ -38,9 +38,12 @@ type delayedPRChanDetails struct {
 }
 
 type ActivityService interface {
-	ActivityCheckTrigger() (*[]DelayedPRDetails, error)
 	FindDelayedPRs(repo repository.RepoModel) chan []prp.PRModel
 	IsPRMoving(openPR prp.PRModel, checkForActivityI CheckForActivityInterface) *bool
+}
+
+type ActivityChecker interface {
+	ActivityCheckTrigger() (*[]DelayedPRDetails, error)
 }
 
 type CheckForActivityInterface interface {

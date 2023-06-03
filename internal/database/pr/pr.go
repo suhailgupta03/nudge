@@ -33,6 +33,7 @@ type PRModel struct {
 	RequestedReviewers                 *[]string `json:"requested_reviewers,omitempty" bson:"requested_reviewers,omitempty"`
 	Reviews                            *[]Review `json:"reviews,omitempty" bson:"reviews,omitempty"`
 	TotalBotComments                   *int      `json:"total_bot_comments,omitempty" bson:"total_bot_comments,omitempty"`
+	LastBotCommentMadeAt               *int64    `json:"last_bot_comment_made_at,omitempty" bson:"last_bot_comment_made_at,omitempty"`
 	PRCreatedAt                        int64     `json:"pr_created_at" bson:"pr_created_at"`
 	PRUpdatedAt                        int64     `json:"pr_updated_at" bson:"pr_updated_at"`
 	CreatedAt                          int64     `bson:"created_at" json:"created_at" bson:"created_at"`
@@ -48,6 +49,10 @@ type Review struct {
 
 type PR struct {
 	Collection *mongo.Collection
+}
+
+type PRComments interface {
+	IncrementTotalCommentsMade(prId int64) error
 }
 
 func Init(db *mongo.Database) *PR {
@@ -232,6 +237,7 @@ func (pr *PR) DeleteAll(repoId int64) error {
 func (pr *PR) IncrementTotalCommentsMade(prId int64) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
+
 	where := map[string]interface{}{
 		"prid": prId,
 	}
@@ -240,7 +246,8 @@ func (pr *PR) IncrementTotalCommentsMade(prId int64) error {
 			"total_bot_comments": 1,
 		},
 		"$set": map[string]interface{}{
-			"updated_at": time.Now().Unix(),
+			"updated_at":               time.Now().Unix(),
+			"last_bot_comment_made_at": time.Now().Unix(),
 		},
 	}
 	_, err := pr.Collection.UpdateOne(ctx, where, toUpdate)

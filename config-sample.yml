@@ -15,6 +15,10 @@ bot:
   ignore_bot_prs: true
   skip_sunday: true
   follow_up_threshold_comments: 7
+  default_timezone: asia/kolkata
+  default_business_hours:
+    start: 10
+    end: 19
 
 github:
   client_id: Iv1.foobar
