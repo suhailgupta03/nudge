@@ -86,3 +86,20 @@ func (repo *Repository) DeleteOneById(repoId int64) error {
 	_, err := repo.Collection.DeleteOne(ctx, where)
 	return err
 }
+
+func (repo *Repository) FindInstallationId(repoId int64) (*int64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	where := map[string]int64{
+		"repo_id": repoId,
+	}
+
+	result := repo.Collection.FindOne(ctx, where, nil)
+	if result.Err() != nil {
+		return nil, result.Err()
+	}
+	var Repo RepoModel
+	result.Decode(&Repo)
+
+	return &Repo.InstallationId, nil
+}

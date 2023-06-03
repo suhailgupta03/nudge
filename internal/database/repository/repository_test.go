@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -194,5 +195,64 @@ func TestRepository_DeleteOne(t *testing.T) {
 	err = repo.Collection.FindOne(ctx, where).Decode(&foundRepo)
 	if err == nil {
 		t.Errorf("DeleteOne should have removed the repository with InstallationId 1")
+	}
+}
+
+func TestFindInstallationId(t *testing.T) {
+	setUp()
+	defer tearDown()
+	repo := Init(dbTest)
+
+	testCases := []struct {
+		description    string
+		repoModel      RepoModel
+		inputRepoId    int64
+		expectedError  error
+		expectedResult *int64
+	}{
+		{
+			description: "Find InstallationId with an existing repo ID",
+			repoModel: RepoModel{
+				InstallationId: 123456,
+				RepoId:         654321,
+				Name:           "test-repo",
+				Owner:          "test-owner",
+			},
+			inputRepoId:   654321,
+			expectedError: nil,
+			expectedResult: func() *int64 {
+				id := int64(123456)
+				return &id
+			}(),
+		},
+		{
+			description:    "Find InstallationId with a non-existing repo ID",
+			inputRepoId:    999999,
+			expectedError:  mongo.ErrNoDocuments,
+			expectedResult: nil,
+		},
+		{
+			description:    "Find InstallationId with an invalid argument (negative repo ID)",
+			inputRepoId:    -1,
+			expectedError:  mongo.ErrNoDocuments,
+			expectedResult: nil,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.description, func(t *testing.T) {
+			if testCase.repoModel.RepoId != 0 {
+				err := repo.Create([]RepoModel{testCase.repoModel})
+				if err != nil {
+					t.Fatal("Failed to create test repo:", err)
+				}
+				defer repo.DeleteOneById(testCase.repoModel.RepoId)
+			}
+
+			result, err := repo.FindInstallationId(testCase.inputRepoId)
+
+			assert.Equal(t, testCase.expectedError, err)
+			assert.Equal(t, testCase.expectedResult, result)
+		})
 	}
 }

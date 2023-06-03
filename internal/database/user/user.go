@@ -19,17 +19,28 @@ type GitHubOauthModel struct {
 	UpdatedAt          int64  `bson:"updated_at" json:"updated_at"`
 }
 
+type NotificationBusinessHours struct {
+	StartHours int `json:"start_time" bson:"start_time"`
+	EndHours   int `json:"end_time" bson:"end_time"`
+}
+
+type TimeZone string
+
 type UserModel struct {
-	GitHubUsername     string                `bson:"git_hub_username" json:"git_hub_username"`
-	GitHubUserId       int64                 `bson:"git_hub_user_id" json:"git_hub_user_id"`
-	Email              string                `bson:"email" json:"email"`
-	GitHubUserOauth    GitHubOauthModel      `bson:"git_hub_user_oauth" json:"git_hub_user_oauth"`
-	GitHubApp          GitHubAppModel        `bson:"git_hub_app" json:"git_hub_app"`
-	SlackAccessToken   *string               `json:"slack_access_token,omitempty" bson:"slack_access_token,omitempty"`
-	SlackUserId        *string               `json:"slack_user_id,omitempty" bson:"slack_user_id,omitempty"`
-	GithubSlackMapping *[]GithubSlackMapping `json:"github_slack_mapping,omitempty" bson:"github_slack_mapping,omitempty"`
-	CreatedAt          int64                 `bson:"created_at" json:"created_at"`
-	UpdatedAt          int64                 `bson:"updated_at" json:"updated_at"`
+	GitHubUsername   string           `bson:"git_hub_username" json:"git_hub_username"`
+	GitHubUserId     int64            `bson:"git_hub_user_id" json:"git_hub_user_id"`
+	Email            string           `bson:"email" json:"email"`
+	GitHubUserOauth  GitHubOauthModel `bson:"git_hub_user_oauth" json:"git_hub_user_oauth"`
+	GitHubApp        GitHubAppModel   `bson:"git_hub_app" json:"git_hub_app"`
+	SlackAccessToken *string          `json:"slack_access_token,omitempty" bson:"slack_access_token,omitempty"`
+	// SlackUserId Can be one of public / private channel id or user id, depending on the use-case
+	SlackUserId *string `json:"slack_user_id,omitempty" bson:"slack_user_id,omitempty"`
+	// GithubSlackMapping can be kept nil if the messages must always be sent to a channel
+	GithubSlackMapping *[]GithubSlackMapping      `json:"github_slack_mapping,omitempty" bson:"github_slack_mapping,omitempty"`
+	TimeZone           *TimeZone                  `json:"time_zone,omitempty" bson:"time_zone,omitempty"`
+	BusinessHours      *NotificationBusinessHours `json:"business_hours,omitempty" bson:"business_hours,omitempty"`
+	CreatedAt          int64                      `bson:"created_at" json:"created_at"`
+	UpdatedAt          int64                      `bson:"updated_at" json:"updated_at"`
 }
 
 type GithubSlackMapping struct {
@@ -38,6 +49,10 @@ type GithubSlackMapping struct {
 }
 type User struct {
 	Collection *mongo.Collection
+}
+
+type UserTimezoneService interface {
+	FindUserTimezoneByInstallationId(installationId int64) (*TimeZone, *NotificationBusinessHours, error)
 }
 
 func Init(db *mongo.Database) *User {
@@ -139,4 +154,41 @@ func (u *User) FindUserByGitHubUsername(githubUserName string, installationId in
 	r.Decode(&user)
 
 	return &user, nil
+}
+
+func (u *User) FindSlackUserIdFromInstallationId(installationId int64) (*UserModel, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	where := map[string]interface{}{
+		"git_hub_app.installation_id": installationId,
+		"slack_user_id": map[string]interface{}{
+			"$exists": true,
+		},
+	}
+
+	r := u.Collection.FindOne(ctx, where)
+	if r.Err() != nil {
+		return nil, r.Err()
+	}
+	var user UserModel
+	r.Decode(&user)
+
+	return &user, nil
+}
+
+func (u *User) FindUserTimezoneByInstallationId(installationId int64) (*TimeZone, *NotificationBusinessHours, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	where := map[string]int64{
+		"git_hub_app.installation_id": installationId,
+	}
+	result := u.Collection.FindOne(ctx, where, nil)
+	if result.Err() != nil {
+		return nil, nil, result.Err()
+	}
+	var U UserModel
+	result.Decode(&U)
+
+	return U.TimeZone, U.BusinessHours, nil
 }

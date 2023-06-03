@@ -10,9 +10,13 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"io"
 	"log"
+	"nudge/activity"
+	"nudge/actor"
 	"nudge/internal/awslog"
 	"nudge/internal/buflog"
 	dbp "nudge/internal/database"
+	"nudge/internal/database/user"
+	"nudge/notify"
 	"os"
 	"os/signal"
 	"syscall"
@@ -98,11 +102,17 @@ func main() {
 	}
 
 	quit := make(chan struct{})
+	deps := new(WorkflowDependencies)
+	deps.Activity = activity.Init(ko, database, lo)
+	deps.ActorIdentifier = new(actor.Actor)
+	deps.NotificationHours = new(notify.BusinessHours)
+	deps.User = user.Init(database)
+
 	go func() {
 		for {
 			select {
 			case <-ticker.C:
-				Workflow()
+				Workflow(*deps)
 				break
 			case <-quit:
 				ticker.Stop()

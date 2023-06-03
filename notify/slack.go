@@ -38,11 +38,26 @@ func (s *SlackNotification) Post(repo repository.RepoModel, pr pr.PRModel, actor
 	// Fetch slack user details
 	userDetails, uErr := user.Init(s.db).FindUserByGitHubUsername(actorToNotify, repo.InstallationId)
 	if uErr != nil {
-		return uErr
+		if errors.Is(uErr, mongo.ErrNoDocuments) {
+			// Check for slack installation and existence of channel
+			slackUserDetails, suErr := user.Init(s.db).FindSlackUserIdFromInstallationId(repo.InstallationId)
+			if suErr != nil {
+				return suErr
+			}
+			if slackUserDetails.SlackUserId != nil {
+				// If the slack user id exists, then we'll send the notification to
+				// the channel represented by this user-id
+				userDetails = slackUserDetails
+			}
+		}
+
+		if userDetails == nil {
+			return uErr
+		}
 	}
 
 	if userDetails.SlackUserId != nil && userDetails.SlackAccessToken != nil { // This means that
-		// the Slack app has been installed
+		// the Slack app has been installed (or configured for use)
 		channel := *userDetails.SlackUserId
 		if userDetails.GitHubUsername != actorToNotify && userDetails.GithubSlackMapping != nil {
 			// If the actor to notify is not the root user, extract the slack user id
