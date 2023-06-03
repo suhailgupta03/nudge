@@ -305,7 +305,7 @@ func TestFindUserTimezoneByInstallationId(t *testing.T) {
 		userModel        UserModel
 		inputInstallId   int64
 		expectedError    error
-		expectedTimezone *string
+		expectedTimezone *TimeZone
 		expectedBizHours *NotificationBusinessHours
 	}{
 		{
@@ -323,7 +323,7 @@ func TestFindUserTimezoneByInstallationId(t *testing.T) {
 			},
 			inputInstallId:   123456,
 			expectedError:    nil,
-			expectedTimezone: StringPtr("America/New_York"),
+			expectedTimezone: TimezonePtr("America/New_York"),
 			expectedBizHours: &NotificationBusinessHours{StartHours: 9, EndHours: 17},
 		},
 		{
@@ -359,10 +359,6 @@ func TestFindUserTimezoneByInstallationId(t *testing.T) {
 			assert.Equal(t, testCase.expectedBizHours, bizHours)
 		})
 	}
-}
-
-func StringPtr(s string) *string {
-	return &s
 }
 
 func TimezonePtr(s TimeZone) *TimeZone {
