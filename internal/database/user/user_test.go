@@ -315,7 +315,7 @@ func TestFindUserTimezoneByInstallationId(t *testing.T) {
 				GitHubApp: GitHubAppModel{
 					InstallationId: 123456,
 				},
-				TimeZone: StringPtr("America/New_York"),
+				TimeZone: TimezonePtr("America/New_York"),
 				BusinessHours: &NotificationBusinessHours{
 					StartHours: 9,
 					EndHours:   17,
@@ -362,5 +362,9 @@ func TestFindUserTimezoneByInstallationId(t *testing.T) {
 }
 
 func StringPtr(s string) *string {
+	return &s
+}
+
+func TimezonePtr(s TimeZone) *TimeZone {
 	return &s
 }

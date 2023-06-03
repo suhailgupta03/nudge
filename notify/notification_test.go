@@ -101,7 +101,7 @@ func TestIsWithinBusinessHours(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.description, func(t *testing.T) {
-			result, err := IsWithinBusinessHours(testCase.userTimezone, testCase.businessHours, testCase.currentDate)
+			result, err := new(BusinessHours).IsWithinBusinessHours(testCase.userTimezone, testCase.businessHours, testCase.currentDate)
 
 			if testCase.expectedError == nil {
 				assert.NoError(t, err)
