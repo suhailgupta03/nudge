@@ -32,22 +32,13 @@ type BusinessHours struct{}
 func (n *BusinessHours) IsWithinBusinessHours(userTimezone string, businessHours user.NotificationBusinessHours, currentTime time.Time) (bool, error) {
 	within := false
 
-	now := currentTime
 	location, locationErr := time.LoadLocation(userTimezone)
 	if locationErr != nil {
 		// Looks like the timezone passed is incorrect
 		return within, locationErr
 	}
 
-	transportedNow := time.Date(
-		now.Year(),
-		now.Month(),
-		now.Day(),
-		now.Hour(),
-		now.Minute(),
-		now.Second(),
-		now.Nanosecond(),
-		location)
+	transportedNow := currentTime.In(location)
 
 	if businessHours.StartHours <= transportedNow.Hour() && businessHours.EndHours >= transportedNow.Hour() {
 		// This means that the current time falls within the business hours
