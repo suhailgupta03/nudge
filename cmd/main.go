@@ -107,6 +107,7 @@ func main() {
 	deps.ActorIdentifier = new(actor.Actor)
 	deps.NotificationHours = new(notify.BusinessHours)
 	deps.User = user.Init(database)
+	deps.NotificationDays = &notify.NotificationDays{Lo: lo}
 
 	go func() {
 		for {

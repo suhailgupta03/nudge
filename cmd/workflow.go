@@ -14,6 +14,7 @@ type WorkflowDependencies struct {
 	Activity          *activity.Activity
 	ActorIdentifier   actor.ActorIdentifier
 	NotificationHours notify.NotificationHours
+	NotificationDays  notify.NotificationDaysService
 	User              *user.User
 }
 
@@ -39,7 +40,8 @@ func Workflow(workflowDependencies WorkflowDependencies) {
 			continue
 		}
 		if len(actorDetails) > 0 {
-			if ko.Bool("bot.skip_sunday") && isSunday() {
+			tz, bizHours := getUserTimezoneDetails(pr.Repository.InstallationId, workflowDependencies.User)
+			if ko.Bool("bot.skip_sunday") && workflowDependencies.NotificationDays.IsSunday(tz, time.Now()) {
 				// Do not send a nudge on Sunday if the configuration
 				// says so
 				continue
@@ -62,7 +64,6 @@ func Workflow(workflowDependencies WorkflowDependencies) {
 				}
 			}
 
-			tz, bizHours := getUserTimezoneDetails(pr.Repository.InstallationId, workflowDependencies.User)
 			withinBizHours, _ := workflowDependencies.NotificationHours.IsWithinBusinessHours(string(*tz), *bizHours, time.Now())
 			if !withinBizHours {
 				// Skip the nudge if not within business hours
@@ -135,12 +136,4 @@ func getDefaultTimezoneDetails() (*user.TimeZone, *user.NotificationBusinessHour
 		EndHours:   ko.Int("bot.default_business_hours.end"),
 	}
 	return &tz, &bh
-}
-
-func isSunday() bool {
-	if time.Now().Weekday() == time.Sunday {
-		return true
-	} else {
-		return false
-	}
 }

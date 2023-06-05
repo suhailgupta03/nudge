@@ -2,6 +2,7 @@ package notify
 
 import (
 	"fmt"
+	"log"
 	"nudge/internal/database/pr"
 	"nudge/internal/database/repository"
 	"nudge/internal/database/user"
@@ -54,4 +55,27 @@ func (n *BusinessHours) IsWithinBusinessHours(userTimezone string, businessHours
 	}
 
 	return within, nil
+}
+
+type NotificationDaysService interface {
+	IsSunday(zone *user.TimeZone, currentTime time.Time) bool
+}
+type NotificationDays struct {
+	Lo *log.Logger
+}
+
+func (nd *NotificationDays) IsSunday(zone *user.TimeZone, currentTime time.Time) bool {
+	loc, err := time.LoadLocation(string(*zone))
+	if err != nil {
+		nd.Lo.Printf("Incorrect timezone passed. Unable to determine if it is Sunday. - %v", err)
+		// Will return false, if not able to determine
+		return false
+	} else {
+		currentTimeLocation := currentTime.In(loc)
+		if currentTimeLocation.Weekday() == time.Sunday {
+			return true
+		} else {
+			return false
+		}
+	}
 }

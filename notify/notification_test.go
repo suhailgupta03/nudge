@@ -2,7 +2,9 @@ package notify
 
 import (
 	"errors"
+	"log"
 	"nudge/internal/database/user"
+	"os"
 	"testing"
 	"time"
 
@@ -111,6 +113,49 @@ func TestIsWithinBusinessHours(t *testing.T) {
 			}
 
 			assert.Equal(t, testCase.expectedResult, result)
+		})
+	}
+}
+
+func TestIsSunday(t *testing.T) {
+	testCases := []struct {
+		name        string
+		timezone    string
+		currentTime time.Time
+		expected    bool
+		errExpected bool
+	}{
+		{
+			name:        "ValidTimezone_Sunday",
+			timezone:    "Asia/Kolkata",
+			currentTime: time.Date(2022, 11, 6, 0, 0, 0, 0, time.UTC),
+			expected:    true,
+		},
+		{
+			name:        "ValidTimezone_NotSunday",
+			timezone:    "Asia/Kolkata",
+			currentTime: time.Date(2022, 11, 5, 0, 0, 0, 0, time.UTC),
+			expected:    false,
+		},
+		{
+			name:        "InvalidTimezone",
+			timezone:    "Invalid/Timezone",
+			currentTime: time.Date(2022, 11, 6, 0, 0, 0, 0, time.UTC),
+			expected:    false,
+			errExpected: true,
+		},
+	}
+
+	notificationDays := &NotificationDays{
+		Lo: log.New(os.Stderr, "TEST: ", log.LstdFlags),
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			timezone := user.TimeZone(tc.timezone)
+			result := notificationDays.IsSunday(&timezone, tc.currentTime)
+
+			assert.Equal(t, tc.expected, result)
 		})
 	}
 }
