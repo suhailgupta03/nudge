@@ -3,9 +3,9 @@ package awslog
 import (
 	"bytes"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/types"
+	time2 "nudge/internal/time"
 	"strings"
 	"sync"
-	"time"
 )
 
 // AWSLog implements a simple log buffer that can be supplied to a std
@@ -33,7 +33,8 @@ func New(maxLines int, aws AWS) *AWSLog {
 func (awsLog *AWSLog) Write(b []byte) (n int, err error) {
 	awsLog.Lock()
 	logLine := strings.TrimSpace(string(b))
-	timestamp := time.Now().UnixMilli()
+	nudgeTime := new(time2.NudgeTime)
+	timestamp := nudgeTime.NudgeTime().UnixMilli()
 
 	if len(awsLog.lines) >= awsLog.maxLines {
 		awsLog.aws.submitLog(awsLog.lines)

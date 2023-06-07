@@ -6,15 +6,12 @@ import (
 	"nudge/internal/database/pr"
 	"nudge/internal/database/repository"
 	"nudge/internal/database/user"
+	"strings"
 	"time"
 )
 
 type Notify interface {
 	Post(repo repository.RepoModel, pr pr.PRModel, actorToNotify string, isReviewer bool) error
-}
-
-type NotificationHours interface {
-	IsWithinBusinessHours(userTimezone string, businessHours user.NotificationBusinessHours, currentTime time.Time) (bool, error)
 }
 
 func createNotificationMessage(actor string, isReviewer bool) string {
@@ -23,6 +20,24 @@ func createNotificationMessage(actor string, isReviewer bool) string {
 	} else {
 		return fmt.Sprintf("Hello @%s. The PR is blocked on your changes. Please complete it ASAP.", actor)
 	}
+}
+
+func createNotificationMessageWithMultipleActors(actors []string, isReviewer bool) string {
+	if isReviewer {
+		actorStr := ""
+		for _, actor := range actors {
+			actorStr += fmt.Sprintf("@%s ", actor)
+		}
+		actorStr = strings.TrimSpace(actorStr)
+		return fmt.Sprintf("Hello %s. The PR is blocked on your approval. Please review it ASAP.", actorStr)
+	} else {
+		actorStr := actors[0]
+		return fmt.Sprintf("Hello @%s. The PR is blocked on your changes. Please complete it ASAP.", actorStr)
+	}
+}
+
+type NotificationHours interface {
+	IsWithinBusinessHours(userTimezone string, businessHours user.NotificationBusinessHours, currentTime time.Time) (bool, error)
 }
 
 type BusinessHours struct{}

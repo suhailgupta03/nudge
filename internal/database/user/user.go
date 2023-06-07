@@ -4,6 +4,7 @@ import (
 	"context"
 	"go.mongodb.org/mongo-driver/mongo"
 	"nudge/internal/database"
+	time2 "nudge/internal/time"
 	"time"
 )
 
@@ -64,7 +65,8 @@ func Init(db *mongo.Database) *User {
 func (u *User) Create(user *UserModel) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	ts := time.Now().Unix()
+	nudgeTime := new(time2.NudgeTime)
+	ts := nudgeTime.NudgeTime().Unix()
 	user.CreatedAt = ts
 	user.UpdatedAt = ts
 	user.GitHubApp.UpdatedAt = ts
@@ -92,7 +94,7 @@ func (u *User) Delete(installationId int64) error {
 func (u *User) UpdateSlackConfig(githubUserName, token, slackUserId string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-
+	nudgeTime := new(time2.NudgeTime)
 	where := map[string]string{
 		"git_hub_username": githubUserName,
 	}
@@ -101,7 +103,7 @@ func (u *User) UpdateSlackConfig(githubUserName, token, slackUserId string) erro
 		"$set": map[string]interface{}{
 			"slack_access_token": token,
 			"slack_user_id":      slackUserId,
-			"updated_at":         time.Now().Unix(),
+			"updated_at":         nudgeTime.NudgeTime().Unix(),
 		},
 	}
 	r := u.Collection.FindOneAndUpdate(ctx, where, toUpdate, nil)
@@ -116,6 +118,7 @@ func (u *User) CreateNewSlackUsers(installationId int64, mapping []GithubSlackMa
 		"git_hub_app.installation_id": installationId,
 	}
 
+	nudgeTime := new(time2.NudgeTime)
 	toUpdate := map[string]interface{}{
 		"$addToSet": map[string]interface{}{
 			"github_slack_mapping": map[string][]GithubSlackMapping{
@@ -123,7 +126,7 @@ func (u *User) CreateNewSlackUsers(installationId int64, mapping []GithubSlackMa
 			},
 		},
 		"$set": map[string]interface{}{
-			"updated_at": time.Now().Unix(),
+			"updated_at": nudgeTime.NudgeTime().Unix(),
 		},
 	}
 

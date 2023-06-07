@@ -53,6 +53,7 @@ func initFlags() {
 }
 
 func main() {
+	lo.Printf("TZ:%s", os.Getenv("TZ"))
 
 	initFlags()
 	if err := ko.Load(file.Provider(ko.String("config")), yaml.Parser()); err != nil {
@@ -108,7 +109,7 @@ func main() {
 	deps.NotificationHours = new(notify.BusinessHours)
 	deps.User = user.Init(database)
 	deps.NotificationDays = &notify.NotificationDays{Lo: lo}
-
+	Workflow(*deps)
 	go func() {
 		for {
 			select {

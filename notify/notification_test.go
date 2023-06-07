@@ -52,7 +52,7 @@ func TestIsWithinBusinessHours(t *testing.T) {
 				EndHours:   17,
 			},
 			expectedResult: true,
-			currentDate:    time.Date(2022, 1, 1, 10, 0, 0, 0, time.UTC),
+			currentDate:    time.Date(2022, 1, 1, 15, 0, 0, 0, time.UTC),
 			expectedError:  nil,
 		},
 		{
@@ -155,6 +155,41 @@ func TestIsSunday(t *testing.T) {
 			timezone := user.TimeZone(tc.timezone)
 			result := notificationDays.IsSunday(&timezone, tc.currentTime)
 
+			assert.Equal(t, tc.expected, result)
+		})
+	}
+}
+
+func TestCreateNotificationMessageWithMultipleActors(t *testing.T) {
+	testCases := []struct {
+		name       string
+		actors     []string
+		isReviewer bool
+		expected   string
+	}{
+		{
+			name:       "MultipleActors_IsReviewer",
+			actors:     []string{"actor1", "actor2"},
+			isReviewer: true,
+			expected:   "Hello @actor1 @actor2. The PR is blocked on your approval. Please review it ASAP.",
+		},
+		{
+			name:       "SingleActor_IsReviewer",
+			actors:     []string{"actor1"},
+			isReviewer: true,
+			expected:   "Hello @actor1. The PR is blocked on your approval. Please review it ASAP.",
+		},
+		{
+			name:       "SingleActor_NotReviewer",
+			actors:     []string{"actor1"},
+			isReviewer: false,
+			expected:   "Hello @actor1. The PR is blocked on your changes. Please complete it ASAP.",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := createNotificationMessageWithMultipleActors(tc.actors, tc.isReviewer)
 			assert.Equal(t, tc.expected, result)
 		})
 	}

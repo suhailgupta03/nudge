@@ -5,6 +5,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"nudge/internal/database"
+	time2 "nudge/internal/time"
 	"time"
 )
 
@@ -30,9 +31,10 @@ func Init(db *mongo.Database) *Repository {
 func (repo *Repository) Create(r []RepoModel) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
+	nudgeTime := new(time2.NudgeTime)
 	records := make([]interface{}, len(r))
 	for i, item := range r {
-		ts := time.Now().Unix()
+		ts := nudgeTime.NudgeTime().Unix()
 		item.CreatedAt = ts
 		item.UpdatedAt = ts
 		records[i] = item
