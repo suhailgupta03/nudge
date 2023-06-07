@@ -2,7 +2,9 @@ package notify
 
 import (
 	"errors"
+	"log"
 	"nudge/internal/database/user"
+	"os"
 	"testing"
 	"time"
 
@@ -50,7 +52,7 @@ func TestIsWithinBusinessHours(t *testing.T) {
 				EndHours:   17,
 			},
 			expectedResult: true,
-			currentDate:    time.Date(2022, 1, 1, 10, 0, 0, 0, time.UTC),
+			currentDate:    time.Date(2022, 1, 1, 15, 0, 0, 0, time.UTC),
 			expectedError:  nil,
 		},
 		{
@@ -111,6 +113,84 @@ func TestIsWithinBusinessHours(t *testing.T) {
 			}
 
 			assert.Equal(t, testCase.expectedResult, result)
+		})
+	}
+}
+
+func TestIsSunday(t *testing.T) {
+	testCases := []struct {
+		name        string
+		timezone    string
+		currentTime time.Time
+		expected    bool
+		errExpected bool
+	}{
+		{
+			name:        "ValidTimezone_Sunday",
+			timezone:    "Asia/Kolkata",
+			currentTime: time.Date(2022, 11, 6, 0, 0, 0, 0, time.UTC),
+			expected:    true,
+		},
+		{
+			name:        "ValidTimezone_NotSunday",
+			timezone:    "Asia/Kolkata",
+			currentTime: time.Date(2022, 11, 5, 0, 0, 0, 0, time.UTC),
+			expected:    false,
+		},
+		{
+			name:        "InvalidTimezone",
+			timezone:    "Invalid/Timezone",
+			currentTime: time.Date(2022, 11, 6, 0, 0, 0, 0, time.UTC),
+			expected:    false,
+			errExpected: true,
+		},
+	}
+
+	notificationDays := &NotificationDays{
+		Lo: log.New(os.Stderr, "TEST: ", log.LstdFlags),
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			timezone := user.TimeZone(tc.timezone)
+			result := notificationDays.IsSunday(&timezone, tc.currentTime)
+
+			assert.Equal(t, tc.expected, result)
+		})
+	}
+}
+
+func TestCreateNotificationMessageWithMultipleActors(t *testing.T) {
+	testCases := []struct {
+		name       string
+		actors     []string
+		isReviewer bool
+		expected   string
+	}{
+		{
+			name:       "MultipleActors_IsReviewer",
+			actors:     []string{"actor1", "actor2"},
+			isReviewer: true,
+			expected:   "Hello @actor1 @actor2. The PR is blocked on your approval. Please review it ASAP.",
+		},
+		{
+			name:       "SingleActor_IsReviewer",
+			actors:     []string{"actor1"},
+			isReviewer: true,
+			expected:   "Hello @actor1. The PR is blocked on your approval. Please review it ASAP.",
+		},
+		{
+			name:       "SingleActor_NotReviewer",
+			actors:     []string{"actor1"},
+			isReviewer: false,
+			expected:   "Hello @actor1. The PR is blocked on your changes. Please complete it ASAP.",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := createNotificationMessageWithMultipleActors(tc.actors, tc.isReviewer)
+			assert.Equal(t, tc.expected, result)
 		})
 	}
 }

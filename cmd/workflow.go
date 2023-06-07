@@ -6,6 +6,7 @@ import (
 	prm "nudge/internal/database/pr"
 	"nudge/internal/database/repository"
 	"nudge/internal/database/user"
+	time2 "nudge/internal/time"
 	"nudge/notify"
 	"time"
 )
@@ -14,6 +15,7 @@ type WorkflowDependencies struct {
 	Activity          *activity.Activity
 	ActorIdentifier   actor.ActorIdentifier
 	NotificationHours notify.NotificationHours
+	NotificationDays  notify.NotificationDaysService
 	User              *user.User
 }
 
@@ -24,7 +26,7 @@ func Workflow(workflowDependencies WorkflowDependencies) {
 
 	// 2. Check for activity
 	delayedPRs, actErr := workflowDependencies.Activity.ActivityCheckTrigger()
-
+	lo.Printf("Found %d delayed PRs", len(*delayedPRs))
 	if actErr != nil {
 		lo.Printf("Error while trying to run the activity trigger %v", actErr)
 		return
@@ -32,16 +34,18 @@ func Workflow(workflowDependencies WorkflowDependencies) {
 
 	// 3. Identify the actors to notify
 	for _, pr := range *delayedPRs {
-
+		lo.Printf("Starting for PR#%d in repository %s", pr.DelayedPR.Number, pr.Repository.Name)
 		actorDetails, ierr := workflowDependencies.ActorIdentifier.IdentifyActors(pr.DelayedPR, pr.Repository, ko)
 		if ierr != nil {
 			lo.Printf("Failed to identify actors for PR %d and repo %s", pr.DelayedPR.Number, pr.Repository.Name)
 			continue
 		}
 		if len(actorDetails) > 0 {
-			if ko.Bool("bot.skip_sunday") && isSunday() {
+			tz, bizHours := getUserTimezoneDetails(pr.Repository.InstallationId, workflowDependencies.User)
+			if ko.Bool("bot.skip_sunday") && workflowDependencies.NotificationDays.IsSunday(tz, time.Now()) {
 				// Do not send a nudge on Sunday if the configuration
 				// says so
+				lo.Printf("Skipping PR#%d of %s on sunday", pr.DelayedPR.Number, pr.Repository.Name)
 				continue
 			}
 
@@ -49,23 +53,26 @@ func Workflow(workflowDependencies WorkflowDependencies) {
 				if *pr.DelayedPR.TotalBotComments >= ko.Int("bot.follow_up_threshold_comments") {
 					// Since this has exceeded the total number of comments a bot
 					// can make, will no longer be sending the nudges
+					lo.Printf("Skipping PR#%d of %s since it crossed the threshold", pr.DelayedPR.Number, pr.Repository.Name)
 					continue
 				}
 			}
 
 			if pr.DelayedPR.LastBotCommentMadeAt != nil {
-				elapsedHoursSinceLastComment := float64((time.Now().Unix() - *pr.DelayedPR.LastBotCommentMadeAt) / 3600)
+				nt := new(time2.NudgeTime)
+				elapsedHoursSinceLastComment := float64((nt.Now().Unix() - *pr.DelayedPR.LastBotCommentMadeAt) / 3600)
 				if elapsedHoursSinceLastComment < ko.Float64("bot.interval_to_wait.time") {
 					// Do not send a nudge,
 					// since the comment made is very recent
+					lo.Printf("Skipping PR#%d of %s since the comment made by bot is very recent (%f)hours", pr.DelayedPR.Number, pr.Repository.Name, elapsedHoursSinceLastComment)
 					continue
 				}
 			}
 
-			tz, bizHours := getUserTimezoneDetails(pr.Repository.InstallationId, workflowDependencies.User)
 			withinBizHours, _ := workflowDependencies.NotificationHours.IsWithinBusinessHours(string(*tz), *bizHours, time.Now())
 			if !withinBizHours {
 				// Skip the nudge if not within business hours
+				lo.Printf("Skipping PR#%d of %s since outside business hours (%d-%d) %s", pr.DelayedPR.Number, pr.Repository.Name, (*bizHours).StartHours, (*bizHours).EndHours, string(*tz))
 				continue
 			}
 
@@ -135,12 +142,4 @@ func getDefaultTimezoneDetails() (*user.TimeZone, *user.NotificationBusinessHour
 		EndHours:   ko.Int("bot.default_business_hours.end"),
 	}
 	return &tz, &bh
-}
-
-func isSunday() bool {
-	if time.Now().Weekday() == time.Sunday {
-		return true
-	} else {
-		return false
-	}
 }

@@ -106,6 +106,17 @@ func (actor *Actor) IdentifyActors(delayedPR prp.PRModel, repo repository.RepoMo
 				})
 			}
 		}
+
+		if len(actors) == 0 {
+			// If it was not able to identify any of the actor, default
+			// it to the author
+			// Note: This can happen when the minimum number of reviews required are more than 1
+			// but there has not been any reviewer assigned
+			actors = append(actors, ActorDetails{
+				IsReviewer:     false,
+				GithubUserName: GithubUserName(*prDetails.User.Login),
+			})
+		}
 		return actors, nil
 	}
 

@@ -6,6 +6,7 @@ import (
 	"github.com/google/go-github/v52/github"
 	"go.mongodb.org/mongo-driver/mongo"
 	"nudge/internal/database"
+	time2 "nudge/internal/time"
 	"nudge/prediction"
 	"time"
 )
@@ -82,7 +83,8 @@ func (pr *PR) GetOpenPRs(repoId int64) (*[]PRModel, error) {
 func (pr *PR) Create(prm *PRModel) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	ts := time.Now().Unix()
+	nudgeTime := new(time2.NudgeTime)
+	ts := nudgeTime.NudgeTime().Unix()
 	prm.CreatedAt = ts
 	prm.UpdatedAt = ts
 
@@ -104,7 +106,8 @@ func (pr *PR) BulkCreate(prms []*PRModel) error {
 
 	prmsToCreate := make([]interface{}, len(prms))
 	for i, prm := range prms {
-		ts := time.Now().Unix()
+		nudgeTime := new(time2.NudgeTime)
+		ts := nudgeTime.NudgeTime().Unix()
 		prm.CreatedAt = ts
 		prm.UpdatedAt = ts
 		prmsToCreate[i] = prm
@@ -119,7 +122,8 @@ func (pr *PR) UpdateByPRId(prId int64, toUpdate interface{}) error {
 
 	where := make(map[string]int64)
 	where["prid"] = prId
-	ts := time.Now().Unix()
+	nudgeTime := new(time2.NudgeTime)
+	ts := nudgeTime.NudgeTime().Unix()
 	var toUpdateWithOperator map[string]interface{}
 
 	switch toUpdate.(type) {
@@ -153,7 +157,8 @@ func (pr *PR) UpdateReviewer(prId int64, reviewer string, remove bool) error {
 
 	where := make(map[string]int64)
 	where["prid"] = prId
-	ts := time.Now().Unix()
+	nudgeTime := new(time2.NudgeTime)
+	ts := nudgeTime.NudgeTime().Unix()
 
 	toUpdate := make(map[string]interface{})
 
@@ -179,7 +184,8 @@ func (pr *PR) UpdateReview(prId int64, review Review, remove bool) error {
 
 	where := make(map[string]int64)
 	where["prid"] = prId
-	ts := time.Now().Unix()
+	nudgeTime := new(time2.NudgeTime)
+	ts := nudgeTime.NudgeTime().Unix()
 
 	toUpdate := make(map[string]interface{})
 
@@ -241,13 +247,14 @@ func (pr *PR) IncrementTotalCommentsMade(prId int64) error {
 	where := map[string]interface{}{
 		"prid": prId,
 	}
+	nudgeTime := new(time2.NudgeTime)
 	toUpdate := map[string]interface{}{
 		"$inc": map[string]interface{}{
 			"total_bot_comments": 1,
 		},
 		"$set": map[string]interface{}{
-			"updated_at":               time.Now().Unix(),
-			"last_bot_comment_made_at": time.Now().Unix(),
+			"updated_at":               nudgeTime.NudgeTime().Unix(),
+			"last_bot_comment_made_at": nudgeTime.NudgeTime().Unix(),
 		},
 	}
 	_, err := pr.Collection.UpdateOne(ctx, where, toUpdate)

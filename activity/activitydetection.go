@@ -6,6 +6,7 @@ import (
 	"log"
 	prp "nudge/internal/database/pr"
 	"nudge/internal/database/repository"
+	time2 "nudge/internal/time"
 	"time"
 )
 
@@ -106,7 +107,6 @@ func (activity *Activity) FindDelayedPRs(repo repository.RepoModel) chan []prp.P
 // which checks for any activity in the pull request environment. If there is an activity
 // observed in the last 24 hours, then the workflow is terminated.
 func (activity *Activity) CheckForActivity(prModel prp.PRModel) *ActivityDetection {
-
 	//  Activity Detection
 	activityDetection := new(ActivityDetection)
 	/**
@@ -144,8 +144,9 @@ func (activity *Activity) CheckForActivity(prModel prp.PRModel) *ActivityDetecti
 	into a pull request but that is a rare occurrence. New updates or iterations
 	are a very strong indicator that the author is making progress on the pull request.
 	*/
-	now := time.Now()
-	workflowLastUpdated := time.Now().AddDate(-100, 0, 0)
+	nt := new(time2.NudgeTime)
+	now := nt.Now()
+	workflowLastUpdated := now.AddDate(-100, 0, 0)
 	// the default is set 100 years back
 	if prModel.WorkflowLastActivity != nil {
 		workflowLastUpdated = time.Unix(*prModel.WorkflowLastActivity, 0)
@@ -173,7 +174,8 @@ func (activity *Activity) CheckForActivity(prModel prp.PRModel) *ActivityDetecti
 // if the hours elapsed since PR creation is less than the predicted lifetime.
 func (activity *Activity) IsPRMoving(openPR prp.PRModel, checkForActivityI CheckForActivityInterface) *bool {
 	r := true
-	elapsedHoursSincePRCreation := (time.Now().Unix() - openPR.PRCreatedAt) / 3600
+	nt := new(time2.NudgeTime)
+	elapsedHoursSincePRCreation := (nt.Now().Unix() - openPR.PRCreatedAt) / 3600
 	if elapsedHoursSincePRCreation > int64(openPR.LifeTime) {
 		// Only if the hours elapsed have crossed the predicted, we'll
 		// consider the PR for any activity
