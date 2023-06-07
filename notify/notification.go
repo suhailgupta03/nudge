@@ -71,7 +71,7 @@ type NotificationDays struct {
 }
 
 func (nd *NotificationDays) IsSunday(zone *user.TimeZone, currentTime time.Time) bool {
-	loc, err := time.LoadLocation(string(*zone))
+	loc, err := time.LoadLocation(strings.TrimSpace(string(*zone)))
 	if err != nil {
 		nd.Lo.Printf("Incorrect timezone passed. Unable to determine if it is Sunday. - %v", err)
 		// Will return false, if not able to determine

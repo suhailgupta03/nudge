@@ -137,9 +137,11 @@ func isPrReviewed(minReviewsRequired int, prDetails *github.PullRequest) bool {
 			reviewed = true
 		}
 	} else {
-		// Since there are no minimum reviews required
-		// PR state will be reviewed
-		reviewed = true
+		if len(prDetails.RequestedReviewers) == 0 {
+			// Since there are no minimum reviews required
+			// and total reviewers are also zero PR state will be reviewed
+			reviewed = true
+		}
 	}
 
 	return reviewed
