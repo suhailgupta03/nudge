@@ -1,4 +1,7 @@
 FROM alpine:latest
+
+RUN apk add --no-cache tzdata
+
 WORKDIR /nudge
 COPY nudge .
 COPY config.yml .

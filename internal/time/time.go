@@ -17,7 +17,6 @@ func (nt *NudgeTime) NudgeTime() *time.Time {
 		log.Printf("Failed to load initialize nudge time %v", err)
 		return nil
 	}
-	log.Printf("Loaded local timezone (from nudge-time) %s", loc.String())
 	t := time.Now().In(loc)
 	return &t
 }

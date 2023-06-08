@@ -27,14 +27,6 @@ release:
 docker: build ## Build docker container for nudge
 	docker-compose build; \
 
-.PHONY: run-docker
-run-docker: docker  ## Build and spawns docker container
-	docker-compose up -d; \
-
-.PHONY: rm-docker
-rm-docker: build ## Delete the docker container including any DB volumes.
-	docker-compose down -v; \
-
 
 # Build local docker images for development.
 .PHONY: build-dev-docker
@@ -51,7 +43,6 @@ dev-docker: build-dev-docker ## Build and spawns docker containers for the entir
 .PHONY: run-dev-backend
 run-dev-backend:
 	go run cmd/*.go --config=dev/config.yml
-
 
 .PHONY: build-test-docker
 build-test-docker:
