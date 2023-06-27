@@ -26,6 +26,7 @@ type PRModel struct {
 	PRID                               int64     `json:"prid" bson:"prid"`
 	RepoId                             int64     `json:"repo_id" bson:"repo_id"`
 	Status                             string    `json:"status" bson:"status"`
+	Draft                              *bool     `json:"draft,omitempty" bson:"draft,omitempty"`
 	LifeTime                           int       `json:"life_time" bson:"life_time"`
 	WorkflowState                      int       `json:"workflow_state" bson:"workflow_state"`
 	WorkflowLastActivity               *int64    `json:"workflow_last_activity,omitempty" bson:"workflow_last_activity,omitempty"`
@@ -267,6 +268,7 @@ func CreateDataModelForPR(pr github.PullRequest, repoId int64) *PRModel {
 	model.Number = *pr.Number
 	model.RepoId = repoId
 	model.Status = *pr.State
+	model.Draft = pr.Draft
 	model.PRCreatedAt = pr.CreatedAt.Unix()
 	model.PRUpdatedAt = pr.UpdatedAt.Unix()
 	model.LifeTime = prediction.EstimateLifeTime()

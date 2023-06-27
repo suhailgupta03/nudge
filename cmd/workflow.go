@@ -81,7 +81,6 @@ func Workflow(workflowDependencies WorkflowDependencies) {
 			lo.Printf("Review is stuck because of %s", actor)
 			// 4. Notify the actors blocking the PR
 			postNotifications(pr.Repository, pr.DelayedPR, actor, isReviewer)
-
 			/**
 			After the notifications have been sent:
 			- Increment the comment counter for this PR

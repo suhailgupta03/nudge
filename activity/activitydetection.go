@@ -91,6 +91,10 @@ func (activity *Activity) FindDelayedPRs(repo repository.RepoModel) chan []prp.P
 		}
 
 		for _, openPR := range *openPRs {
+			if openPR.Draft != nil && *openPR.Draft {
+				// Skip draft PRs
+				continue
+			}
 			moving := activity.IsPRMoving(openPR, activity)
 			if !*moving {
 				prList = append(prList, openPR)
