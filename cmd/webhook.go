@@ -64,6 +64,7 @@ func handlePR(pr github.PullRequestEvent, app *App) {
 			updateWorkflow(pr, app)
 			break
 		case "reopened":
+		case "ready_for_review":
 			handlePRReopenRequest(pr, app)
 			updateWorkflow(pr, app)
 			break
