@@ -65,6 +65,7 @@ func (n *BusinessHours) IsWithinBusinessHours(userTimezone string, businessHours
 
 type NotificationDaysService interface {
 	IsSunday(zone *user.TimeZone, currentTime time.Time) bool
+	IsAnyDayInList(zone *user.TimeZone, currentTime time.Time, days []int) bool
 }
 type NotificationDays struct {
 	Lo *log.Logger
@@ -83,5 +84,22 @@ func (nd *NotificationDays) IsSunday(zone *user.TimeZone, currentTime time.Time)
 		} else {
 			return false
 		}
+	}
+}
+
+func (nd *NotificationDays) IsAnyDayInList(zone *user.TimeZone, currentTime time.Time, days []int) bool {
+	loc, err := time.LoadLocation(strings.TrimSpace(string(*zone)))
+	if err != nil {
+		nd.Lo.Printf("Incorrect timezone passed. Unable to determine the day - %v", err)
+		// Will return false, if not able to determine
+		return false
+	} else {
+		currentTimeLocation := currentTime.In(loc)
+		for _, day := range days {
+			if currentTimeLocation.Weekday() == time.Weekday(day) {
+				return true
+			}
+		}
+		return false
 	}
 }
