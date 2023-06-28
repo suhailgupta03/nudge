@@ -3,6 +3,7 @@ BIN := nudge
 .PHONY: build
 build: $(BIN)
 
+
 # Build the backend to ./nudge.
 $(BIN): $(shell find . -type f -name "*.go")
 	go build -o ${BIN} cmd/*.go
@@ -25,24 +26,13 @@ release:
 
 .PHONY:docker
 docker: build ## Build docker container for nudge
-	docker-compose build; \
-
-
-# Build local docker images for development.
-.PHONY: build-dev-docker
-build-dev-docker: ## Build docker containers for the entire suite (Front/Core/PG).
-	cd dev; \
-	docker-compose build ; \
-
-# Spin a local docker suite for local development.
-.PHONY: dev-docker
-dev-docker: build-dev-docker ## Build and spawns docker containers for the entire suite
-	cd dev; \
-	docker-compose up
+	docker-compose build;
 
 .PHONY: run-dev-backend
 run-dev-backend:
-	go run cmd/*.go --config=dev/config.yml
+	GOOS=darwin GOARCH=amd64 go build -o nudge_dev cmd/*.go
+	docker-compose -f dev/docker-compose.yml up -d
+	./nudge_dev --config=dev/config.yml --github.pem=dev/nudge.private-key.pem
 
 .PHONY: build-test-docker
 build-test-docker:

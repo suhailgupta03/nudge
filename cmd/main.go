@@ -44,6 +44,7 @@ func initFlags() {
 	f := flag.NewFlagSet("config", flag.ContinueOnError)
 	// Register the commandline flags.
 	f.String("config", "config.yml", "path to config file")
+	f.String("github.pem", "nudge.private-key.pem", "path to github pem file")
 	if err := f.Parse(os.Args[1:]); err != nil {
 		lo.Fatalf("error loading flags: %v", err)
 	}
@@ -54,7 +55,6 @@ func initFlags() {
 
 func main() {
 	lo.Printf("TZ:%s", os.Getenv("TZ"))
-
 	initFlags()
 	if err := ko.Load(file.Provider(ko.String("config")), yaml.Parser()); err != nil {
 		lo.Fatalf("error loading config from config.yml %v", err)
@@ -75,7 +75,7 @@ func main() {
 		lo.Printf("Warn: aws cloudwatch details not present")
 	}
 
-	data, pemErr := os.ReadFile("nudge.private-key.pem")
+	data, pemErr := os.ReadFile(ko.String("github.pem"))
 	if pemErr != nil {
 		lo.Fatalf("Failed to read the application pem file %v", pemErr)
 	}

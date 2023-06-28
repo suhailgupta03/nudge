@@ -1,5 +1,6 @@
 services:
   db:
+    container_name: nudge-dev-db
     image: mongo:6.0.5
     ports:
       - "27018:27017"
@@ -13,21 +14,6 @@ services:
       - type: volume
         source: nudge-dev-db
         target: /var/lib/nudge/data
-
-  backend:
-    build:
-      context: ../
-      dockerfile: dev/app.Dockerfile
-    command: ["make", "run-dev-backend"]
-    ports:
-      - "9000:9000"
-    depends_on:
-      - db
-    volumes:
-      - ../:/nudge
-    networks:
-      - nudge-dev
-
 
 volumes:
   nudge-dev-db:

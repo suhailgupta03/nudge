@@ -34,10 +34,10 @@ make run-tests
 make release
 ```
 
-**Create build**
+**Run Locally On Mac**
 
 ```shell
-make docker
+make run-dev-backend
 ```
 
 **Design Overview**
