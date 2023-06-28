@@ -42,11 +42,12 @@ func Workflow(workflowDependencies WorkflowDependencies) {
 		}
 		if len(actorDetails) > 0 {
 			tz, bizHours := getUserTimezoneDetails(pr.Repository.InstallationId, workflowDependencies.User)
-			if ko.Bool("bot.skip_sunday") && workflowDependencies.NotificationDays.IsSunday(tz, time.Now()) {
-				// Do not send a nudge on Sunday if the configuration
-				// says so
-				lo.Printf("Skipping PR#%d of %s on sunday", pr.DelayedPR.Number, pr.Repository.Name)
-				continue
+			if len(ko.Ints("bot.skip_days")) > 0 {
+				if workflowDependencies.NotificationDays.IsAnyDayInList(tz, time.Now(), ko.Ints("bot.skip_days")) {
+					// Do not send a nudge on the days mentioned in the configuration
+					lo.Printf("Skipping PR#%d of %s on the days mentioned in the configuration", pr.DelayedPR.Number, pr.Repository.Name)
+					continue
+				}
 			}
 
 			if pr.DelayedPR.TotalBotComments != nil {
@@ -81,7 +82,6 @@ func Workflow(workflowDependencies WorkflowDependencies) {
 			lo.Printf("Review is stuck because of %s", actor)
 			// 4. Notify the actors blocking the PR
 			postNotifications(pr.Repository, pr.DelayedPR, actor, isReviewer)
-
 			/**
 			After the notifications have been sent:
 			- Increment the comment counter for this PR
