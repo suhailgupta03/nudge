@@ -12,6 +12,16 @@ bot:
     unit: h
     time: 1
 
+  ignore_bot_prs: true
+  skip_days:
+    - 0 # sunday
+    - 6 # saturday
+  follow_up_threshold_comments: 7
+  default_timezone: Asia/Kolkata
+  default_business_hours:
+    start: 10
+    end: 19
+
 github:
   client_id: abc.xyz
   client_secret: xyz
@@ -24,5 +34,5 @@ slack:
   client_secret: xyz
 
 mongo:
-  connection: mongodb://nudge:nudge@db:27017
+  connection: mongodb://nudge:nudge@localhost:27018
   database: nudge
